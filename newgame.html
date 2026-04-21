@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChromaBet — Color Prediction</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070710;
+    --surface: #0e0e1c;
+    --surface2: #14142a;
+    --border: #1e1e3a;
+    --text: #e8e8f5;
+    --muted: #6060a0;
+    --red: #ff3a5c;
+    --green: #00e87b;
+    --blue: #3a7fff;
+    --violet: #9b5cff;
+    --amber: #ffb830;
+    --cyan: #00d4ff;
+    --glow-red: 0 0 30px rgba(255,58,92,0.4);
+    --glow-green: 0 0 30px rgba(0,232,123,0.4);
+    --glow-blue: 0 0 30px rgba(58,127,255,0.4);
+    --glow-violet: 0 0 30px rgba(155,92,255,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BG GRID */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(58,127,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(58,127,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(7,7,16,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    height: 64px;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2rem;
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, var(--cyan), var(--violet));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+  }
+
+  .wallet-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .wallet-badge span { color: var(--muted); font-size: 0.75rem; }
+
+  .btn {
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--blue), var(--violet));
+    color: #fff;
+  }
+
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--glow-blue); }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .btn-outline:hover { border-color: var(--violet); color: var(--violet); }
+
+  /* MAIN LAYOUT */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* GAME SECTION */
+  .game-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .game-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 3rem;
+    letter-spacing: 6px;
+    color: var(--text);
+  }
+
+  .game-subtitle {
+    color: var(--muted);
+    margin-top: 0.3rem;
+    font-size: 0.95rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* TIMER */
+  .timer-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .timer-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem 3rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .timer-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(58,127,255,0.05), rgba(155,92,255,0.05));
+  }
+
+  .timer-label {
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .timer-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--cyan);
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(0,212,255,0.5);
+  }
+
+  .round-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .round-badge strong { color: var(--amber); }
+
+  /* PROGRESS BAR */
+  .progress-wrap {
+    background: var(--surface2);
+    border-radius: 4px;
+    height: 4px;
+    margin: 0 auto 2.5rem;
+    max-width: 500px;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--violet));
+    border-radius: 4px;
+    transition: width 1s linear;
+    box-shadow: 0 0 10px rgba(0,212,255,0.6);
+  }
+
+  /* COLOR CARDS */
+  .color-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .color-card {
+    border-radius: 16px;
+    padding: 1.8rem 1.2rem;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    background: var(--surface);
+  }
+
+  .color-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.25s;
+    border-radius: 14px;
+  }
+
+  .color-card:hover { transform: translateY(-4px) scale(1.02); }
+
+  .color-card.selected { border-color: currentColor; transform: translateY(-6px) scale(1.04); }
+  .color-card.selected::before { opacity: 1; }
+
+  .card-red { color: var(--red); }
+  .card-red::before { background: radial-gradient(circle at center, rgba(255,58,92,0.15), transparent 70%); }
+  .card-red.selected { box-shadow: var(--glow-red), inset 0 0 30px rgba(255,58,92,0.1); }
+
+  .card-green { color: var(--green); }
+  .card-green::before { background: radial-gradient(circle at center, rgba(0,232,123,0.15), transparent 70%); }
+  .card-green.selected { box-shadow: var(--glow-green), inset 0 0 30px rgba(0,232,123,0.1); }
+
+  .card-blue { color: var(--blue); }
+  .card-blue::before { background: radial-gradient(circle at center, rgba(58,127,255,0.15), transparent 70%); }
+  .card-blue.selected { box-shadow: var(--glow-blue), inset 0 0 30px rgba(58,127,255,0.1); }
+
+  .card-violet { color: var(--violet); }
+  .card-violet::before { background: radial-gradient(circle at center, rgba(155,92,255,0.15), transparent 70%); }
+  .card-violet.selected { box-shadow: var(--glow-violet), inset 0 0 30px rgba(155,92,255,0.1); }
+
+  .card-amber { color: var(--amber); }
+  .card-amber::before { background: radial-gradient(circle at center, rgba(255,184,48,0.15), transparent 70%); }
+  .card-amber.selected { box-shadow: 0 0 30px rgba(255,184,48,0.4), inset 0 0 30px rgba(255,184,48,0.1); }
+
+  .card-cyan { color: var(--cyan); }
+  .card-cyan::before { background: radial-gradient(circle at center, rgba(0,212,255,0.15), transparent 70%); }
+  .card-cyan.selected { box-shadow: 0 0 30px rgba(0,212,255,0.4), inset 0 0 30px rgba(0,212,255,0.1); }
+
+  .color-orb {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    position: relative;
+    transition: transform 0.3s;
+  }
+
+  .color-card:hover .color-orb, .color-card.selected .color-orb { transform: scale(1.15); }
+
+  .orb-red { background: radial-gradient(circle at 35% 35%, #ff6b85, var(--red), #7a0018); box-shadow: 0 8px 20px rgba(255,58,92,0.5); }
+  .orb-green { background: radial-gradient(circle at 35% 35%, #7affc0, var(--green), #006635); box-shadow: 0 8px 20px rgba(0,232,123,0.5); }
+  .orb-blue { background: radial-gradient(circle at 35% 35%, #85b5ff, var(--blue), #001a66); box-shadow: 0 8px 20px rgba(58,127,255,0.5); }
+  .orb-violet { background: radial-gradient(circle at 35% 35%, #c49aff, var(--violet), #3a0066); box-shadow: 0 8px 20px rgba(155,92,255,0.5); }
+  .orb-amber { background: radial-gradient(circle at 35% 35%, #ffd480, var(--amber), #664400); box-shadow: 0 8px 20px rgba(255,184,48,0.5); }
+  .orb-cyan { background: radial-gradient(circle at 35% 35%, #80eeff, var(--cyan), #003a66); box-shadow: 0 8px 20px rgba(0,212,255,0.5); }
+
+  .card-name {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.4rem;
+    letter-spacing: 3px;
+    margin-bottom: 0.3rem;
+  }
+
+  .card-multiplier {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    opacity: 0.7;
+  }
+
+  /* BET PANEL */
+  .bet-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bet-panel::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(155,92,255,0.06), transparent 70%);
+    pointer-events: none;
+  }
+
+  .bet-panel-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.2rem;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+  }
+
+  .bet-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .bet-input-wrap {
+    flex: 1;
+    min-width: 180px;
+  }
+
+  .bet-input-wrap label {
+    display: block;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .bet-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .bet-input:focus { border-color: var(--violet); }
+
+  .quick-amounts {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .quick-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .quick-btn:hover { border-color: var(--violet); color: var(--violet); }
+
+  .selected-color-display {
+    flex: 0 0 auto;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 20px;
+    text-align: center;
+    min-width: 120px;
+  }
+
+  .selected-color-display .label { font-size: 0.7rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .selected-color-display .value { font-family: 'Bebas Neue', cursive; font-size: 1.4rem; letter-spacing: 2px; margin-top: 2px; }
+
+  .btn-place-bet {
+    background: linear-gradient(135deg, var(--violet), var(--blue));
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 32px;
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.2rem;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 0 0 auto;
+    align-self: flex-end;
+  }
+
+  .btn-place-bet:hover:not(:disabled) { transform: translateY(-3px); box-shadow: var(--glow-violet); }
+  .btn-place-bet:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .potential-win {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  .potential-win strong { color: var(--green); font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; }
+
+  /* RESULT REVEAL */
+  .result-section {
+    display: none;
+    text-align: center;
+    padding: 2.5rem;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    margin-bottom: 2rem;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .result-section.show { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .result-orb {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin: 0 auto 1.5rem;
+    animation: orbPulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes orbPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+  .result-label { font-family: 'Bebas Neue', cursive; font-size: 1rem; letter-spacing: 4px; color: var(--muted); }
+  .result-color { font-family: 'Bebas Neue', cursive; font-size: 3rem; letter-spacing: 6px; margin: 0.3rem 0; }
+  .result-outcome { font-size: 1.1rem; font-weight: 600; }
+  .result-outcome.win { color: var(--green); }
+  .result-outcome.lose { color: var(--red); }
+
+  /* HISTORY */
+  .section-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.5rem;
+    letter-spacing: 4px;
+    color: var(--text);
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .history-dots {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+  }
+
+  .history-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    font-family: 'JetBrains Mono', monospace;
+    position: relative;
+  }
+
+  /* BETS TABLE */
+  .bets-table {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+
+  .bets-table table { width: 100%; border-collapse: collapse; }
+
+  .bets-table th {
+    background: var(--surface2);
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .bets-table td {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    border-bottom: 1px solid rgba(30,30,58,0.5);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .bets-table tr:last-child td { border-bottom: none; }
+  .bets-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .color-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .color-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .status-win { color: var(--green); }
+  .status-lose { color: var(--red); }
+  .status-pending { color: var(--amber); }
+
+  /* LEADERBOARD */
+  .leaderboard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .leaderboard-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid rgba(30,30,58,0.5);
+    transition: background 0.15s;
+  }
+
+  .leaderboard-item:last-child { border-bottom: none; }
+  .leaderboard-item:hover { background: rgba(255,255,255,0.02); }
+
+  .rank {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.4rem;
+    color: var(--muted);
+    width: 30px;
+    text-align: center;
+  }
+
+  .rank.gold { color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+  .rank.silver { color: #c0c0c0; }
+  .rank.bronze { color: #cd7f32; }
+
+  .player-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--violet), var(--blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .player-info { flex: 1; }
+  .player-name { font-weight: 600; font-size: 0.95rem; }
+  .player-bets { font-size: 0.75rem; color: var(--muted); }
+  .player-profit { font-family: 'JetBrains Mono', monospace; color: var(--green); font-weight: 700; }
+
+  /* MODALS */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2.5rem;
+    max-width: 440px;
+    width: 90%;
+    animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+  }
+
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+
+  .modal-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2rem;
+    letter-spacing: 4px;
+    margin-bottom: 0.3rem;
+  }
+
+  .modal-sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.8rem; }
+
+  .form-group { margin-bottom: 1.2rem; }
+  .form-group label { display: block; font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; }
+  .form-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: var(--violet); }
+
+  .modal-close {
+    position: absolute;
+    top: 1.2rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+
+  .modal-switch { color: var(--muted); font-size: 0.85rem; text-align: center; margin-top: 1rem; }
+  .modal-switch a { color: var(--violet); cursor: pointer; text-decoration: none; }
+  .modal-switch a:hover { text-decoration: underline; }
+
+  /* ADD FUNDS */
+  .amount-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.7rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .amount-option {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+  }
+
+  .amount-option:hover, .amount-option.selected { border-color: var(--violet); background: rgba(155,92,255,0.1); color: var(--violet); }
+
+  /* NOTIFICATION */
+  .notification {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    min-width: 280px;
+    transform: translateX(120%);
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  }
+
+  .notification.show { transform: translateX(0); }
+  .notification.success { border-color: var(--green); }
+  .notification.error { border-color: var(--red); }
+  .notification.info { border-color: var(--blue); }
+
+  .notif-icon { font-size: 1.3rem; }
+  .notif-text { font-size: 0.9rem; }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 0.3rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 1.5rem;
+    width: fit-content;
+  }
+
+  .tab {
+    padding: 7px 20px;
+    border-radius: 7px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+  }
+
+  .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+  }
+
+  .stat-label { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+
+  /* SPIN ANIMATION for result */
+  @keyframes spinReveal {
+    0% { transform: rotateY(0deg); opacity: 0; }
+    50% { transform: rotateY(90deg); opacity: 0.5; }
+    100% { transform: rotateY(0deg); opacity: 1; }
+  }
+
+  .spin-reveal { animation: spinReveal 0.6s ease-out; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .color-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .bet-row { flex-direction: column; }
+    main { padding: 1rem; }
+    .timer-value { font-size: 2rem; }
+  }
+
+  @media (max-width: 480px) {
+    .color-grid { grid-template-columns: repeat(2, 1fr); }
+    header { padding: 0 1rem; }
+  }
+
+  /* Pulse animation */
+  @keyframes pulse-ring {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(155,92,255, 0.4); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(155,92,255, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(155,92,255, 0); }
+  }
+
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    animation: pulse-ring 1.5s infinite;
+    display: inline-block;
+    margin-right: 6px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">ChromaBet</div>
+  <div class="header-right">
+    <div class="wallet-badge" id="walletBadge" style="display:none">
+      <span>Balance</span>
+      ₹<span id="walletAmount">0.00</span>
+    </div>
+    <button class="btn btn-outline" id="btnAddFunds" style="display:none" onclick="openAddFunds()">+ Add Funds</button>
+    <button class="btn btn-primary" id="btnLogin" onclick="openLogin()">Sign In</button>
+    <button class="btn btn-outline" id="btnRegister" onclick="openRegister()">Register</button>
+    <button class="btn btn-outline" id="btnLogout" style="display:none" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- GAME HEADER -->
+  <div class="game-header">
+    <div class="game-title">COLOR PREDICTION</div>
+    <div class="game-subtitle"><span class="live-dot"></span>Live — Round results every 60 seconds</div>
+  </div>
+
+  <!-- STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value" id="statTotalBets" style="color:var(--cyan)">0</div>
+      <div class="stat-label">Total Bets</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statWins" style="color:var(--green)">0</div>
+      <div class="stat-label">Wins</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statWinRate" style="color:var(--amber)">0%</div>
+      <div class="stat-label">Win Rate</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statProfit" style="color:var(--violet)">₹0</div>
+      <div class="stat-label">Net Profit</div>
+    </div>
+  </div>
+
+  <!-- TIMER -->
+  <div class="timer-section">
+    <div class="round-badge">Round <strong id="roundNum">#2847</strong></div>
+    <div class="timer-box">
+      <div class="timer-label">Next Result In</div>
+      <div class="timer-value" id="timerDisplay">60</div>
+    </div>
+    <div class="round-badge">Phase: <strong id="phaseLabel" style="color:var(--cyan)">BETTING</strong></div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar" id="progressBar" style="width:100%"></div>
+  </div>
+
+  <!-- COLOR CARDS -->
+  <div class="color-grid">
+    <div class="color-card card-red" onclick="selectColor('RED', 2.0, this)">
+      <div class="color-orb orb-red"></div>
+      <div class="card-name" style="color:var(--red)">RED</div>
+      <div class="card-multiplier">2.0× Multiplier</div>
+    </div>
+    <div class="color-card card-green" onclick="selectColor('GREEN', 2.0, this)">
+      <div class="color-orb orb-green"></div>
+      <div class="card-name" style="color:var(--green)">GREEN</div>
+      <div class="card-multiplier">2.0× Multiplier</div>
+    </div>
+    <div class="color-card card-blue" onclick="selectColor('BLUE', 3.0, this)">
+      <div class="color-orb orb-blue"></div>
+      <div class="card-name" style="color:var(--blue)">BLUE</div>
+      <div class="card-multiplier">3.0× Multiplier</div>
+    </div>
+    <div class="color-card card-violet" onclick="selectColor('VIOLET', 4.0, this)">
+      <div class="color-orb orb-violet"></div>
+      <div class="card-name" style="color:var(--violet)">VIOLET</div>
+      <div class="card-multiplier">4.0× Multiplier</div>
+    </div>
+    <div class="color-card card-amber" onclick="selectColor('AMBER', 5.0, this)">
+      <div class="color-orb orb-amber"></div>
+      <div class="card-name" style="color:var(--amber)">AMBER</div>
+      <div class="card-multiplier">5.0× Multiplier</div>
+    </div>
+    <div class="color-card card-cyan" onclick="selectColor('CYAN', 6.0, this)">
+      <div class="color-orb orb-cyan"></div>
+      <div class="card-name" style="color:var(--cyan)">CYAN</div>
+      <div class="card-multiplier">6.0× Multiplier</div>
+    </div>
+  </div>
+
+  <!-- BET PANEL -->
+  <div class="bet-panel">
+    <div class="bet-panel-title">Place Your Bet</div>
+    <div class="bet-row">
+      <div class="bet-input-wrap">
+        <label>Bet Amount (₹)</label>
+        <input type="number" class="bet-input" id="betAmount" placeholder="Enter amount..." min="10" value="100" oninput="updatePotential()">
+        <div class="quick-amounts">
+          <button class="quick-btn" onclick="setAmount(50)">₹50</button>
+          <button class="quick-btn" onclick="setAmount(100)">₹100</button>
+          <button class="quick-btn" onclick="setAmount(500)">₹500</button>
+          <button class="quick-btn" onclick="setAmount(1000)">₹1K</button>
+          <button class="quick-btn" onclick="setAmount(5000)">₹5K</button>
+          <button class="quick-btn" onclick="halfBet()">½</button>
+          <button class="quick-btn" onclick="doubleBet()">2×</button>
+        </div>
+      </div>
+      <div class="selected-color-display">
+        <div class="label">Selected</div>
+        <div class="value" id="selectedColorDisplay" style="color:var(--muted)">NONE</div>
+      </div>
+      <button class="btn-place-bet" id="placeBetBtn" onclick="placeBet()" disabled>PLACE BET</button>
+    </div>
+    <div class="potential-win">
+      Potential Win: <strong id="potentialWin">₹0.00</strong>
+      <span style="color:var(--muted);font-size:0.8rem" id="selectedMultiplier"></span>
+    </div>
+  </div>
+
+  <!-- RESULT REVEAL -->
+  <div class="result-section" id="resultSection">
+    <div class="timer-label" style="margin-bottom:0.5rem">ROUND RESULT</div>
+    <div class="result-orb spin-reveal" id="resultOrb"></div>
+    <div class="result-label">Winning Color</div>
+    <div class="result-color" id="resultColor">—</div>
+    <div class="result-outcome" id="resultOutcome"></div>
+  </div>
+
+  <!-- HISTORY DOTS -->
+  <div class="section-title">Recent Results</div>
+  <div class="history-dots" id="historyDots"></div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('myBets', this)">My Bets</button>
+    <button class="tab" onclick="switchTab('leaderboard', this)">Leaderboard</button>
+  </div>
+
+  <!-- MY BETS -->
+  <div id="myBetsTab">
+    <div class="bets-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Round</th>
+            <th>Color</th>
+            <th>Amount</th>
+            <th>Result</th>
+            <th>Profit/Loss</th>
+          </tr>
+        </thead>
+        <tbody id="betsTableBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">No bets yet. Place your first bet!</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div id="leaderboardTab" style="display:none">
+    <div class="leaderboard" id="leaderboardList"></div>
+  </div>
+
+</main>
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('loginModal')">✕</button>
+    <div class="modal-title">Welcome Back</div>
+    <div class="modal-sub">Sign in to your ChromaBet account</div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" class="form-input" id="loginEmail" placeholder="you@example.com">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" class="form-input" id="loginPassword" placeholder="••••••••">
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:12px;font-size:1rem;border-radius:10px" onclick="login()">Sign In</button>
+    <div class="modal-switch">Don't have an account? <a onclick="switchModal('loginModal','registerModal')">Register here</a></div>
+  </div>
+</div>
+
+<!-- REGISTER MODAL -->
+<div class="modal-overlay" id="registerModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('registerModal')">✕</button>
+    <div class="modal-title">Create Account</div>
+    <div class="modal-sub">Join ChromaBet and start winning</div>
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" class="form-input" id="regName" placeholder="Your name">
+    </div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" class="form-input" id="regEmail" placeholder="you@example.com">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" class="form-input" id="regPassword" placeholder="Min. 8 characters">
+    </div>
+    <div class="form-group">
+      <label>Phone Number</label>
+      <input type="tel" class="form-input" id="regPhone" placeholder="+91 XXXXX XXXXX">
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:12px;font-size:1rem;border-radius:10px" onclick="register()">Create Account</button>
+    <div class="modal-switch">Already have an account? <a onclick="switchModal('registerModal','loginModal')">Sign in</a></div>
+  </div>
+</div>
+
+<!-- ADD FUNDS MODAL -->
+<div class="modal-overlay" id="fundsModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('fundsModal')">✕</button>
+    <div class="modal-title">Add Funds</div>
+    <div class="modal-sub">Securely powered by Razorpay</div>
+    <div class="amount-grid">
+      <div class="amount-option" onclick="selectAmount(100, this)">₹100</div>
+      <div class="amount-option" onclick="selectAmount(250, this)">₹250</div>
+      <div class="amount-option" onclick="selectAmount(500, this)">₹500</div>
+      <div class="amount-option" onclick="selectAmount(1000, this)">₹1,000</div>
+      <div class="amount-option" onclick="selectAmount(2000, this)">₹2,000</div>
+      <div class="amount-option" onclick="selectAmount(5000, this)">₹5,000</div>
+    </div>
+    <div class="form-group">
+      <label>Or Enter Custom Amount</label>
+      <input type="number" class="form-input" id="customAmount" placeholder="Enter amount in ₹" min="100">
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:12px;font-size:1rem;border-radius:10px;margin-top:0.5rem" onclick="initiatePayment()">
+      💳 Pay with Razorpay
+    </button>
+    <div style="text-align:center;margin-top:0.8rem;font-size:0.75rem;color:var(--muted)">
+      🔒 SSL Encrypted · UPI · Cards · Net Banking · Wallets
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div class="notification" id="notification">
+  <span class="notif-icon" id="notifIcon">✅</span>
+  <span class="notif-text" id="notifText">Success</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// SUPABASE CONFIGURATION
+// ═══════════════════════════════════════════
+const SUPABASE_URL = 'https://tcodfznjlcgbqsxkypnb.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Uh_acNmTNhFS3wbBPBaXNg_d82Vj516';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ═══════════════════════════════════════════
+// RAZORPAY CONFIGURATION
+// ═══════════════════════════════════════════
+const RAZORPAY_KEY_ID = 'YOUR_RAZORPAY_KEY_ID'; // rzp_test_XXXXXXXX
+
+// ═══════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════
+let currentUser = null;
+let userBalance = 0;
+let selectedColor = null;
+let selectedMultiplier = 1;
+let currentRound = 2847;
+let timerSeconds = 60;
+let timerInterval = null;
+let isBettingOpen = true;
+let addFundsAmount = 0;
+let sessionBets = [];
+let sessionStats = { bets: 0, wins: 0, profit: 0 };
+
+// Color CSS mappings
+const colorMap = {
+  RED: { var: 'var(--red)', orbClass: 'orb-red' },
+  GREEN: { var: 'var(--green)', orbClass: 'orb-green' },
+  BLUE: { var: 'var(--blue)', orbClass: 'orb-blue' },
+  VIOLET: { var: 'var(--violet)', orbClass: 'orb-violet' },
+  AMBER: { var: 'var(--amber)', orbClass: 'orb-amber' },
+  CYAN: { var: 'var(--cyan)', orbClass: 'orb-cyan' },
+};
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+async function init() {
+  await checkSession();
+  startTimer();
+  seedHistory();
+  populateLeaderboard();
+}
+
+async function checkSession() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      currentUser = session.user;
+      await loadUserProfile();
+      updateAuthUI(true);
+    }
+  } catch (e) {
+    // Supabase not configured — demo mode
+    console.log('Supabase not configured, running in demo mode');
+  }
+}
+
+async function loadUserProfile() {
+  try {
+    const { data } = await sb.from('users').select('*').eq('id', currentUser.id).single();
+    if (data) {
+      userBalance = data.balance || 0;
+      updateWallet();
+    }
+  } catch (e) {
+    userBalance = 1000; // Demo balance
+    updateWallet();
+  }
+}
+
+// ═══════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════
+async function login() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) return notify('Please fill all fields', 'error');
+
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    currentUser = data.user;
+    await loadUserProfile();
+    updateAuthUI(true);
+    closeModal('loginModal');
+    notify('Welcome back! 🎉', 'success');
+  } catch (e) {
+    // Demo mode login
+    currentUser = { id: 'demo', email };
+    userBalance = 5000;
+    updateWallet();
+    updateAuthUI(true);
+    closeModal('loginModal');
+    notify('Logged in (Demo Mode)', 'info');
+  }
+}
+
+async function register() {
+  const name = document.getElementById('regName').value;
+  const email = document.getElementById('regEmail').value;
+  const password = document.getElementById('regPassword').value;
+  const phone = document.getElementById('regPhone').value;
+  if (!name || !email || !password) return notify('Please fill all required fields', 'error');
+  if (password.length < 8) return notify('Password must be at least 8 characters', 'error');
+
+  try {
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name, phone } } });
+    if (error) throw error;
+    // Insert into users table
+    await sb.from('users').insert({ id: data.user.id, name, email, phone, balance: 0 });
+    notify('Account created! Please check your email to verify.', 'success');
+    closeModal('registerModal');
+  } catch (e) {
+    // Demo register
+    currentUser = { id: 'demo', email, name };
+    userBalance = 1000;
+    updateWallet();
+    updateAuthUI(true);
+    closeModal('registerModal');
+    notify('Account created (Demo Mode) — ₹1,000 bonus credited!', 'success');
+  }
+}
+
+async function logout() {
+  await sb.auth.signOut().catch(() => {});
+  currentUser = null;
+  userBalance = 0;
+  updateAuthUI(false);
+  notify('Logged out successfully', 'info');
+}
+
+function updateAuthUI(loggedIn) {
+  document.getElementById('btnLogin').style.display = loggedIn ? 'none' : 'inline-block';
+  document.getElementById('btnRegister').style.display = loggedIn ? 'none' : 'inline-block';
+  document.getElementById('btnLogout').style.display = loggedIn ? 'inline-block' : 'none';
+  document.getElementById('btnAddFunds').style.display = loggedIn ? 'inline-block' : 'none';
+  document.getElementById('walletBadge').style.display = loggedIn ? 'flex' : 'none';
+}
+
+function updateWallet() {
+  document.getElementById('walletAmount').textContent = userBalance.toFixed(2);
+}
+
+// ═══════════════════════════════════════════
+// GAME TIMER
+// ═══════════════════════════════════════════
+function startTimer() {
+  timerSeconds = 60;
+  isBettingOpen = true;
+  updateTimerUI();
+
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    updateTimerUI();
+
+    if (timerSeconds === 10) {
+      document.getElementById('phaseLabel').textContent = 'CLOSING BETS';
+      document.getElementById('phaseLabel').style.color = 'var(--amber)';
+    }
+
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      isBettingOpen = false;
+      document.getElementById('phaseLabel').textContent = 'DRAWING';
+      document.getElementById('phaseLabel').style.color = 'var(--red)';
+      document.getElementById('placeBetBtn').disabled = true;
+      setTimeout(revealResult, 1500);
+    }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  document.getElementById('timerDisplay').textContent = timerSeconds;
+  const pct = (timerSeconds / 60) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+// ═══════════════════════════════════════════
+// COLOR SELECTION & BETTING
+// ═══════════════════════════════════════════
+function selectColor(color, multiplier, el) {
+  if (!isBettingOpen) return notify('Betting is closed for this round', 'error');
+  if (!currentUser) { openLogin(); return; }
+
+  document.querySelectorAll('.color-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedColor = color;
+  selectedMultiplier = multiplier;
+
+  const display = document.getElementById('selectedColorDisplay');
+  display.textContent = color;
+  display.style.color = colorMap[color].var;
+
+  document.getElementById('placeBetBtn').disabled = false;
+  document.getElementById('selectedMultiplier').textContent = `at ${multiplier}×`;
+  updatePotential();
+}
+
+function updatePotential() {
+  const amount = parseFloat(document.getElementById('betAmount').value) || 0;
+  const win = selectedColor ? (amount * selectedMultiplier).toFixed(2) : '0.00';
+  document.getElementById('potentialWin').textContent = '₹' + win;
+}
+
+function setAmount(val) {
+  document.getElementById('betAmount').value = val;
+  updatePotential();
+}
+
+function halfBet() {
+  const v = parseFloat(document.getElementById('betAmount').value) || 100;
+  setAmount(Math.max(10, Math.floor(v / 2)));
+}
+
+function doubleBet() {
+  const v = parseFloat(document.getElementById('betAmount').value) || 100;
+  setAmount(v * 2);
+}
+
+async function placeBet() {
+  if (!currentUser) return openLogin();
+  if (!selectedColor) return notify('Select a color first', 'error');
+  if (!isBettingOpen) return notify('Betting is closed', 'error');
+
+  const amount = parseFloat(document.getElementById('betAmount').value);
+  if (!amount || amount < 10) return notify('Minimum bet is ₹10', 'error');
+  if (amount > userBalance) return notify('Insufficient balance', 'error');
+
+  // Deduct from balance
+  userBalance -= amount;
+  updateWallet();
+
+  const betData = {
+    user_id: currentUser.id,
+    round: currentRound,
+    color: selectedColor,
+    amount,
+    multiplier: selectedMultiplier,
+    status: 'pending',
+    created_at: new Date().toISOString()
+  };
+
+  try {
+    await sb.from('bets').insert(betData);
+  } catch (e) {
+    console.log('Demo mode: bet stored locally');
+  }
+
+  sessionBets.unshift({ ...betData, id: Date.now() });
+  sessionStats.bets++;
+  updateStats();
+
+  notify(`✅ Bet of ₹${amount} on ${selectedColor} placed!`, 'success');
+  document.getElementById('placeBetBtn').disabled = true;
+  renderBetsTable();
+}
+
+// ═══════════════════════════════════════════
+// RESULT REVEAL
+// ═══════════════════════════════════════════
+function revealResult() {
+  const colors = ['RED', 'GREEN', 'BLUE', 'VIOLET', 'AMBER', 'CYAN'];
+  const weights = [30, 30, 20, 12, 5, 3]; // Weighted probability
+  const winningColor = weightedRandom(colors, weights);
+
+  // Show result
+  const rs = document.getElementById('resultSection');
+  rs.classList.add('show');
+
+  const orb = document.getElementById('resultOrb');
+  orb.className = 'result-orb spin-reveal ' + colorMap[winningColor].orbClass;
+
+  const rc = document.getElementById('resultColor');
+  rc.textContent = winningColor;
+  rc.style.color = colorMap[winningColor].var;
+
+  // Update bets
+  let outcome = '';
+  sessionBets.forEach(bet => {
+    if (bet.round === currentRound && bet.status === 'pending') {
+      if (bet.color === winningColor) {
+        const winAmount = bet.amount * bet.multiplier;
+        userBalance += winAmount;
+        bet.status = 'win';
+        bet.payout = winAmount;
+        sessionStats.wins++;
+        sessionStats.profit += (winAmount - bet.amount);
+        outcome = `🎉 YOU WIN ₹${winAmount.toFixed(2)}!`;
+      } else {
+        bet.status = 'lose';
+        bet.payout = 0;
+        sessionStats.profit -= bet.amount;
+        outcome = `❌ Better luck next round`;
+      }
+    }
+  });
+
+  document.getElementById('resultOutcome').textContent = outcome;
+  document.getElementById('resultOutcome').className = 'result-outcome ' + (outcome.includes('WIN') ? 'win' : 'lose');
+  if (outcome) notify(outcome, outcome.includes('WIN') ? 'success' : 'error');
+
+  updateWallet();
+  updateStats();
+  renderBetsTable();
+
+  // Add to history
+  addHistoryDot(winningColor);
+
+  // Start next round after delay
+  setTimeout(() => {
+    rs.classList.remove('show');
+    currentRound++;
+    document.getElementById('roundNum').textContent = '#' + currentRound;
+    document.getElementById('phaseLabel').textContent = 'BETTING';
+    document.getElementById('phaseLabel').style.color = 'var(--cyan)';
+    document.getElementById('placeBetBtn').disabled = !selectedColor;
+    startTimer();
+  }, 5000);
+}
+
+function weightedRandom(items, weights) {
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < items.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return items[i];
+  }
+  return items[items.length - 1];
+}
+
+// ═══════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════
+const historyColors = [];
+
+function seedHistory() {
+  const colors = ['RED', 'GREEN', 'BLUE', 'RED', 'GREEN', 'AMBER', 'RED', 'VIOLET', 'GREEN', 'RED', 'CYAN', 'GREEN', 'RED', 'BLUE', 'GREEN'];
+  colors.forEach(c => historyColors.push(c));
+  renderHistory();
+}
+
+function addHistoryDot(color) {
+  historyColors.unshift(color);
+  if (historyColors.length > 20) historyColors.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  const container = document.getElementById('historyDots');
+  container.innerHTML = historyColors.map((c, i) => `
+    <div class="history-dot" style="background:${colorMap[c].var};opacity:${1 - i * 0.04}" title="${c}"></div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════
+// STATS & TABLE
+// ═══════════════════════════════════════════
+function updateStats() {
+  document.getElementById('statTotalBets').textContent = sessionStats.bets;
+  document.getElementById('statWins').textContent = sessionStats.wins;
+  const wr = sessionStats.bets ? Math.round((sessionStats.wins / sessionStats.bets) * 100) : 0;
+  document.getElementById('statWinRate').textContent = wr + '%';
+  const profit = sessionStats.profit;
+  document.getElementById('statProfit').textContent = (profit >= 0 ? '₹' : '-₹') + Math.abs(profit).toFixed(0);
+  document.getElementById('statProfit').style.color = profit >= 0 ? 'var(--green)' : 'var(--red)';
+}
+
+function renderBetsTable() {
+  const tbody = document.getElementById('betsTableBody');
+  if (!sessionBets.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">No bets yet. Place your first bet!</td></tr>';
+    return;
+  }
+  tbody.innerHTML = sessionBets.map(bet => {
+    const c = colorMap[bet.color];
+    const statusClass = bet.status === 'win' ? 'status-win' : bet.status === 'lose' ? 'status-lose' : 'status-pending';
+    const statusLabel = bet.status === 'win' ? '🏆 WIN' : bet.status === 'lose' ? '✗ LOSE' : '⏳ PENDING';
+    const pl = bet.status === 'win' ? `+₹${(bet.payout - bet.amount).toFixed(2)}` : bet.status === 'lose' ? `-₹${bet.amount.toFixed(2)}` : '—';
+    return `<tr>
+      <td>#${bet.round}</td>
+      <td><span class="color-pill"><span class="color-dot" style="background:${c.var}"></span>${bet.color}</span></td>
+      <td>₹${bet.amount.toFixed(2)}</td>
+      <td class="${statusClass}">${statusLabel}</td>
+      <td class="${statusClass}">${pl}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// LEADERBOARD
+// ═══════════════════════════════════════════
+function populateLeaderboard() {
+  const players = [
+    { name: 'Rahul M.', bets: 142, profit: 45200 },
+    { name: 'Priya S.', bets: 98, profit: 31800 },
+    { name: 'Arjun K.', bets: 210, profit: 28500 },
+    { name: 'Neha P.', bets: 67, profit: 19200 },
+    { name: 'Vikram R.', bets: 155, profit: 15600 },
+  ];
+
+  const ranks = ['gold', 'silver', 'bronze', '', ''];
+  const rankSymbols = ['🥇', '🥈', '🥉', '4', '5'];
+
+  document.getElementById('leaderboardList').innerHTML = players.map((p, i) => `
+    <div class="leaderboard-item">
+      <div class="rank ${ranks[i]}">${rankSymbols[i]}</div>
+      <div class="player-avatar">${p.name[0]}</div>
+      <div class="player-info">
+        <div class="player-name">${p.name}</div>
+        <div class="player-bets">${p.bets} bets placed</div>
+      </div>
+      <div class="player-profit">₹${p.profit.toLocaleString()}</div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════
+// PAYMENTS — RAZORPAY
+// ═══════════════════════════════════════════
+function openAddFunds() {
+  if (!currentUser) return openLogin();
+  document.getElementById('fundsModal').classList.add('show');
+}
+
+function selectAmount(amount, el) {
+  document.querySelectorAll('.amount-option').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  addFundsAmount = amount;
+  document.getElementById('customAmount').value = '';
+}
+
+function initiatePayment() {
+  if (!currentUser) return;
+  const customAmt = parseFloat(document.getElementById('customAmount').value);
+  const amount = customAmt || addFundsAmount;
+  if (!amount || amount < 100) return notify('Minimum deposit is ₹100', 'error');
+
+  // Load Razorpay script dynamically
+  if (!window.Razorpay) {
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload = () => openRazorpay(amount);
+    document.head.appendChild(s);
+  } else {
+    openRazorpay(amount);
+  }
+}
+
+function openRazorpay(amount) {
+  const options = {
+    key: RAZORPAY_KEY_ID,
+    amount: amount * 100, // in paise
+    currency: 'INR',
+    name: 'ChromaBet',
+    description: 'Wallet Top-up',
+    image: '',
+    handler: async function (response) {
+      // Payment successful
+      await creditWallet(amount, response.razorpay_payment_id);
+      closeModal('fundsModal');
+    },
+    prefill: {
+      name: currentUser.user_metadata?.name || '',
+      email: currentUser.email || '',
+    },
+    theme: { color: '#9b5cff' },
+    modal: {
+      ondismiss: () => notify('Payment cancelled', 'info')
+    }
+  };
+
+  // If Razorpay key not configured, simulate
+  if (RAZORPAY_KEY_ID === 'YOUR_RAZORPAY_KEY_ID') {
+    simulatePayment(amount);
+    return;
+  }
+
+  const rzp = new Razorpay(options);
+  rzp.open();
+}
+
+async function creditWallet(amount, paymentId = 'DEMO') {
+  userBalance += amount;
+  updateWallet();
+
+  try {
+    await sb.from('transactions').insert({
+      user_id: currentUser.id,
+      amount,
+      type: 'deposit',
+      payment_id: paymentId,
+      status: 'success',
+      created_at: new Date().toISOString()
+    });
+    await sb.from('users').update({ balance: userBalance }).eq('id', currentUser.id);
+  } catch (e) {
+    console.log('Demo: wallet updated locally');
+  }
+
+  notify(`₹${amount} added to your wallet! 🎉`, 'success');
+}
+
+function simulatePayment(amount) {
+  closeModal('fundsModal');
+  notify('🔔 Demo mode: Razorpay payment simulated', 'info');
+  setTimeout(() => creditWallet(amount, 'DEMO_' + Date.now()), 1500);
+}
+
+// ═══════════════════════════════════════════
+// UI UTILITIES
+// ═══════════════════════════════════════════
+function openLogin() { document.getElementById('loginModal').classList.add('show'); }
+function openRegister() { document.getElementById('registerModal').classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function switchModal(from, to) {
+  closeModal(from);
+  setTimeout(() => document.getElementById(to).classList.add('show'), 200);
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('show');
+  });
+});
+
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('myBetsTab').style.display = tab === 'myBets' ? 'block' : 'none';
+  document.getElementById('leaderboardTab').style.display = tab === 'leaderboard' ? 'block' : 'none';
+}
+
+let notifTimeout;
+function notify(message, type = 'info') {
+  const n = document.getElementById('notification');
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  document.getElementById('notifIcon').textContent = icons[type] || 'ℹ️';
+  document.getElementById('notifText').textContent = message;
+  n.className = 'notification show ' + type;
+  clearTimeout(notifTimeout);
+  notifTimeout = setTimeout(() => n.classList.remove('show'), 3500);
+}
+
+// ═══════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
