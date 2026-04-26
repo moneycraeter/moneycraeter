@@ -1,1627 +1,1597 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChromaBet — Color Prediction</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>CHROMABET — Live Color Prediction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-  :root {
-    --bg: #070710;
-    --surface: #0e0e1c;
-    --surface2: #14142a;
-    --border: #1e1e3a;
-    --text: #e8e8f5;
-    --muted: #6060a0;
-    --red: #ff3a5c;
-    --green: #00e87b;
-    --blue: #3a7fff;
-    --violet: #9b5cff;
-    --amber: #ffb830;
-    --cyan: #00d4ff;
-    --glow-red: 0 0 30px rgba(255,58,92,0.4);
-    --glow-green: 0 0 30px rgba(0,232,123,0.4);
-    --glow-blue: 0 0 30px rgba(58,127,255,0.4);
-    --glow-violet: 0 0 30px rgba(155,92,255,0.4);
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* BG GRID */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(58,127,255,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(58,127,255,0.04) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* HEADER */
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(7,7,16,0.85);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 2rem;
-    height: 64px;
-  }
-
-  .logo {
-    font-family: 'Bebas Neue', cursive;
-    font-size: 2rem;
-    letter-spacing: 4px;
-    background: linear-gradient(135deg, var(--cyan), var(--violet));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 1.2rem;
-  }
-
-  .wallet-badge {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 6px 16px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.9rem;
-    color: var(--green);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .wallet-badge span { color: var(--muted); font-size: 0.75rem; }
-
-  .btn {
-    padding: 8px 20px;
-    border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-    transition: all 0.2s;
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, var(--blue), var(--violet));
-    color: #fff;
-  }
-
-  .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--glow-blue); }
-
-  .btn-outline {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text);
-  }
-
-  .btn-outline:hover { border-color: var(--violet); color: var(--violet); }
-
-  /* MAIN LAYOUT */
-  main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* GAME SECTION */
-  .game-header {
-    text-align: center;
-    margin-bottom: 2.5rem;
-  }
-
-  .game-title {
-    font-family: 'Bebas Neue', cursive;
-    font-size: 3rem;
-    letter-spacing: 6px;
-    color: var(--text);
-  }
-
-  .game-subtitle {
-    color: var(--muted);
-    margin-top: 0.3rem;
-    font-size: 0.95rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-  }
-
-  /* TIMER */
-  .timer-section {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2rem;
-    margin-bottom: 2.5rem;
-  }
-
-  .timer-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.5rem 3rem;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .timer-box::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(58,127,255,0.05), rgba(155,92,255,0.05));
-  }
-
-  .timer-label {
-    font-size: 0.7rem;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 0.5rem;
-  }
-
-  .timer-value {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 3rem;
-    font-weight: 700;
-    color: var(--cyan);
-    line-height: 1;
-    text-shadow: 0 0 20px rgba(0,212,255,0.5);
-  }
-
-  .round-badge {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    color: var(--muted);
-  }
-
-  .round-badge strong { color: var(--amber); }
-
-  /* PROGRESS BAR */
-  .progress-wrap {
-    background: var(--surface2);
-    border-radius: 4px;
-    height: 4px;
-    margin: 0 auto 2.5rem;
-    max-width: 500px;
-    overflow: hidden;
-  }
-
-  .progress-bar {
-    height: 100%;
-    background: linear-gradient(90deg, var(--cyan), var(--violet));
-    border-radius: 4px;
-    transition: width 1s linear;
-    box-shadow: 0 0 10px rgba(0,212,255,0.6);
-  }
-
-  /* COLOR CARDS */
-  .color-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-bottom: 2rem;
-  }
-
-  .color-card {
-    border-radius: 16px;
-    padding: 1.8rem 1.2rem;
-    cursor: pointer;
-    border: 2px solid transparent;
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    position: relative;
-    overflow: hidden;
-    text-align: center;
-    background: var(--surface);
-  }
-
-  .color-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    transition: opacity 0.25s;
-    border-radius: 14px;
-  }
-
-  .color-card:hover { transform: translateY(-4px) scale(1.02); }
-
-  .color-card.selected { border-color: currentColor; transform: translateY(-6px) scale(1.04); }
-  .color-card.selected::before { opacity: 1; }
-
-  .card-red { color: var(--red); }
-  .card-red::before { background: radial-gradient(circle at center, rgba(255,58,92,0.15), transparent 70%); }
-  .card-red.selected { box-shadow: var(--glow-red), inset 0 0 30px rgba(255,58,92,0.1); }
-
-  .card-green { color: var(--green); }
-  .card-green::before { background: radial-gradient(circle at center, rgba(0,232,123,0.15), transparent 70%); }
-  .card-green.selected { box-shadow: var(--glow-green), inset 0 0 30px rgba(0,232,123,0.1); }
-
-  .card-blue { color: var(--blue); }
-  .card-blue::before { background: radial-gradient(circle at center, rgba(58,127,255,0.15), transparent 70%); }
-  .card-blue.selected { box-shadow: var(--glow-blue), inset 0 0 30px rgba(58,127,255,0.1); }
-
-  .card-violet { color: var(--violet); }
-  .card-violet::before { background: radial-gradient(circle at center, rgba(155,92,255,0.15), transparent 70%); }
-  .card-violet.selected { box-shadow: var(--glow-violet), inset 0 0 30px rgba(155,92,255,0.1); }
-
-  .card-amber { color: var(--amber); }
-  .card-amber::before { background: radial-gradient(circle at center, rgba(255,184,48,0.15), transparent 70%); }
-  .card-amber.selected { box-shadow: 0 0 30px rgba(255,184,48,0.4), inset 0 0 30px rgba(255,184,48,0.1); }
-
-  .card-cyan { color: var(--cyan); }
-  .card-cyan::before { background: radial-gradient(circle at center, rgba(0,212,255,0.15), transparent 70%); }
-  .card-cyan.selected { box-shadow: 0 0 30px rgba(0,212,255,0.4), inset 0 0 30px rgba(0,212,255,0.1); }
-
-  .color-orb {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    margin: 0 auto 1rem;
-    position: relative;
-    transition: transform 0.3s;
-  }
-
-  .color-card:hover .color-orb, .color-card.selected .color-orb { transform: scale(1.15); }
-
-  .orb-red { background: radial-gradient(circle at 35% 35%, #ff6b85, var(--red), #7a0018); box-shadow: 0 8px 20px rgba(255,58,92,0.5); }
-  .orb-green { background: radial-gradient(circle at 35% 35%, #7affc0, var(--green), #006635); box-shadow: 0 8px 20px rgba(0,232,123,0.5); }
-  .orb-blue { background: radial-gradient(circle at 35% 35%, #85b5ff, var(--blue), #001a66); box-shadow: 0 8px 20px rgba(58,127,255,0.5); }
-  .orb-violet { background: radial-gradient(circle at 35% 35%, #c49aff, var(--violet), #3a0066); box-shadow: 0 8px 20px rgba(155,92,255,0.5); }
-  .orb-amber { background: radial-gradient(circle at 35% 35%, #ffd480, var(--amber), #664400); box-shadow: 0 8px 20px rgba(255,184,48,0.5); }
-  .orb-cyan { background: radial-gradient(circle at 35% 35%, #80eeff, var(--cyan), #003a66); box-shadow: 0 8px 20px rgba(0,212,255,0.5); }
-
-  .card-name {
-    font-family: 'Bebas Neue', cursive;
-    font-size: 1.4rem;
-    letter-spacing: 3px;
-    margin-bottom: 0.3rem;
-  }
-
-  .card-multiplier {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    opacity: 0.7;
-  }
-
-  /* BET PANEL */
-  .bet-panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .bet-panel::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(155,92,255,0.06), transparent 70%);
-    pointer-events: none;
-  }
-
-  .bet-panel-title {
-    font-family: 'Bebas Neue', cursive;
-    font-size: 1.2rem;
-    letter-spacing: 3px;
-    color: var(--muted);
-    margin-bottom: 1.5rem;
-    text-transform: uppercase;
-  }
-
-  .bet-row {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-end;
-    flex-wrap: wrap;
-  }
-
-  .bet-input-wrap {
-    flex: 1;
-    min-width: 180px;
-  }
-
-  .bet-input-wrap label {
-    display: block;
-    font-size: 0.75rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 0.5rem;
-  }
-
-  .bet-input {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 16px;
-    color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 1.1rem;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  .bet-input:focus { border-color: var(--violet); }
-
-  .quick-amounts {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .quick-btn {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 4px 12px;
-    font-size: 0.8rem;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .quick-btn:hover { border-color: var(--violet); color: var(--violet); }
-
-  .selected-color-display {
-    flex: 0 0 auto;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 20px;
-    text-align: center;
-    min-width: 120px;
-  }
-
-  .selected-color-display .label { font-size: 0.7rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
-  .selected-color-display .value { font-family: 'Bebas Neue', cursive; font-size: 1.4rem; letter-spacing: 2px; margin-top: 2px; }
-
-  .btn-place-bet {
-    background: linear-gradient(135deg, var(--violet), var(--blue));
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    padding: 14px 32px;
-    font-family: 'Bebas Neue', cursive;
-    font-size: 1.2rem;
-    letter-spacing: 3px;
-    cursor: pointer;
-    transition: all 0.2s;
-    flex: 0 0 auto;
-    align-self: flex-end;
-  }
-
-  .btn-place-bet:hover:not(:disabled) { transform: translateY(-3px); box-shadow: var(--glow-violet); }
-  .btn-place-bet:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  .potential-win {
-    margin-top: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    font-size: 0.9rem;
-    color: var(--muted);
-  }
-
-  .potential-win strong { color: var(--green); font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; }
-
-  /* RESULT REVEAL */
-  .result-section {
-    display: none;
-    text-align: center;
-    padding: 2.5rem;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    margin-bottom: 2rem;
-    animation: fadeIn 0.4s ease;
-  }
-
-  .result-section.show { display: block; }
-
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-  .result-orb {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    margin: 0 auto 1.5rem;
-    animation: orbPulse 1.5s ease-in-out infinite;
-  }
-
-  @keyframes orbPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-
-  .result-label { font-family: 'Bebas Neue', cursive; font-size: 1rem; letter-spacing: 4px; color: var(--muted); }
-  .result-color { font-family: 'Bebas Neue', cursive; font-size: 3rem; letter-spacing: 6px; margin: 0.3rem 0; }
-  .result-outcome { font-size: 1.1rem; font-weight: 600; }
-  .result-outcome.win { color: var(--green); }
-  .result-outcome.lose { color: var(--red); }
-
-  /* HISTORY */
-  .section-title {
-    font-family: 'Bebas Neue', cursive;
-    font-size: 1.5rem;
-    letter-spacing: 4px;
-    color: var(--text);
-    margin-bottom: 1.2rem;
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-  }
-
-  .section-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  .history-dots {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 2rem;
-  }
-
-  .history-dot {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.6rem;
-    font-family: 'JetBrains Mono', monospace;
-    position: relative;
-  }
-
-  /* BETS TABLE */
-  .bets-table {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-    margin-bottom: 2rem;
-  }
-
-  .bets-table table { width: 100%; border-collapse: collapse; }
-
-  .bets-table th {
-    background: var(--surface2);
-    font-size: 0.7rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--muted);
-    padding: 12px 16px;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .bets-table td {
-    padding: 12px 16px;
-    font-size: 0.9rem;
-    border-bottom: 1px solid rgba(30,30,58,0.5);
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .bets-table tr:last-child td { border-bottom: none; }
-  .bets-table tr:hover td { background: rgba(255,255,255,0.02); }
-
-  .color-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-  }
-
-  .color-dot { width: 8px; height: 8px; border-radius: 50%; }
-
-  .status-win { color: var(--green); }
-  .status-lose { color: var(--red); }
-  .status-pending { color: var(--amber); }
-
-  /* LEADERBOARD */
-  .leaderboard {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-  }
-
-  .leaderboard-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem 1.2rem;
-    border-bottom: 1px solid rgba(30,30,58,0.5);
-    transition: background 0.15s;
-  }
-
-  .leaderboard-item:last-child { border-bottom: none; }
-  .leaderboard-item:hover { background: rgba(255,255,255,0.02); }
-
-  .rank {
-    font-family: 'Bebas Neue', cursive;
-    font-size: 1.4rem;
-    color: var(--muted);
-    width: 30px;
-    text-align: center;
-  }
-
-  .rank.gold { color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
-  .rank.silver { color: #c0c0c0; }
-  .rank.bronze { color: #cd7f32; }
-
-  .player-avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--violet), var(--blue));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 0.9rem;
-  }
-
-  .player-info { flex: 1; }
-  .player-name { font-weight: 600; font-size: 0.95rem; }
-  .player-bets { font-size: 0.75rem; color: var(--muted); }
-  .player-profit { font-family: 'JetBrains Mono', monospace; color: var(--green); font-weight: 700; }
-
-  /* MODALS */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(8px);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .modal-overlay.show { display: flex; }
-
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 2.5rem;
-    max-width: 440px;
-    width: 90%;
-    animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    position: relative;
-  }
-
-  @keyframes modalIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
-
-  .modal-title {
-    font-family: 'Bebas Neue', cursive;
-    font-size: 2rem;
-    letter-spacing: 4px;
-    margin-bottom: 0.3rem;
-  }
-
-  .modal-sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.8rem; }
-
-  .form-group { margin-bottom: 1.2rem; }
-  .form-group label { display: block; font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; }
-  .form-input {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 16px;
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.95rem;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .form-input:focus { border-color: var(--violet); }
-
-  .modal-close {
-    position: absolute;
-    top: 1.2rem;
-    right: 1.5rem;
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-size: 1.4rem;
-    cursor: pointer;
-    transition: color 0.2s;
-  }
-  .modal-close:hover { color: var(--text); }
-
-  .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
-
-  .modal-switch { color: var(--muted); font-size: 0.85rem; text-align: center; margin-top: 1rem; }
-  .modal-switch a { color: var(--violet); cursor: pointer; text-decoration: none; }
-  .modal-switch a:hover { text-decoration: underline; }
-
-  /* ADD FUNDS */
-  .amount-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.7rem;
-    margin-bottom: 1.2rem;
-  }
-
-  .amount-option {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.95rem;
-  }
-
-  .amount-option:hover, .amount-option.selected { border-color: var(--violet); background: rgba(155,92,255,0.1); color: var(--violet); }
-
-  /* NOTIFICATION */
-  .notification {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
-    z-index: 2000;
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    min-width: 280px;
-    transform: translateX(120%);
-    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-  }
-
-  .notification.show { transform: translateX(0); }
-  .notification.success { border-color: var(--green); }
-  .notification.error { border-color: var(--red); }
-  .notification.info { border-color: var(--blue); }
-
-  .notif-icon { font-size: 1.3rem; }
-  .notif-text { font-size: 0.9rem; }
-
-  /* TABS */
-  .tabs {
-    display: flex;
-    gap: 0.3rem;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 4px;
-    margin-bottom: 1.5rem;
-    width: fit-content;
-  }
-
-  .tab {
-    padding: 7px 20px;
-    border-radius: 7px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: none;
-    background: transparent;
-    color: var(--muted);
-  }
-
-  .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-
-  /* STATS ROW */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    margin-bottom: 2rem;
-  }
-
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.2rem;
-    text-align: center;
-  }
-
-  .stat-value {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 1.4rem;
-    font-weight: 700;
-    margin-bottom: 0.2rem;
-  }
-
-  .stat-label { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
-
-  /* SPIN ANIMATION for result */
-  @keyframes spinReveal {
-    0% { transform: rotateY(0deg); opacity: 0; }
-    50% { transform: rotateY(90deg); opacity: 0.5; }
-    100% { transform: rotateY(0deg); opacity: 1; }
-  }
-
-  .spin-reveal { animation: spinReveal 0.6s ease-out; }
-
-  /* RESPONSIVE */
-  @media (max-width: 768px) {
-    .color-grid { grid-template-columns: repeat(2, 1fr); }
-    .stats-row { grid-template-columns: repeat(2, 1fr); }
-    .bet-row { flex-direction: column; }
-    main { padding: 1rem; }
-    .timer-value { font-size: 2rem; }
-  }
-
-  @media (max-width: 480px) {
-    .color-grid { grid-template-columns: repeat(2, 1fr); }
-    header { padding: 0 1rem; }
-  }
-
-  /* Pulse animation */
-  @keyframes pulse-ring {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(155,92,255, 0.4); }
-    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(155,92,255, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(155,92,255, 0); }
-  }
-
-  .live-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--red);
-    animation: pulse-ring 1.5s infinite;
-    display: inline-block;
-    margin-right: 6px;
-  }
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CHROMABET — Complete Stylesheet
+   Aesthetic: Futuristic Dark Arcade with Neon Plasma
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+:root{
+  --ink:#04050f;
+  --ink2:#080a1c;
+  --ink3:#0d1028;
+  --plate:#111428;
+  --plate2:#161a35;
+  --wire:rgba(255,255,255,.06);
+  --wire2:rgba(255,255,255,.11);
+  --txt:#d8dcff;
+  --dim:#5060a0;
+  --dim2:#2d3580;
+
+  --red:#ff1744;   --red-g:rgba(255,23,68,.38);
+  --grn:#00e676;   --grn-g:rgba(0,230,118,.38);
+  --blu:#2979ff;   --blu-g:rgba(41,121,255,.38);
+  --cyn:#00e5ff;   --cyn-g:rgba(0,229,255,.38);
+  --ylw:#ffea00;   --ylw-g:rgba(255,234,0,.38);
+  --pnk:#f50057;   --pnk-g:rgba(245,0,87,.38);
+  --vio:#d500f9;   --vio-g:rgba(213,0,249,.38);
+  --wht:#ffffff;   --wht-g:rgba(255,255,255,.25);
+
+  --gold:#ffc400;
+  --r:10px;--r2:18px;--r3:26px;
+  --ease:.22s cubic-bezier(.4,0,.2,1);
+  --bounce:.3s cubic-bezier(.34,1.56,.64,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Chakra Petch',sans-serif;
+  background:var(--ink);color:var(--txt);
+  min-height:100vh;overflow-x:hidden;
+}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--ink)}
+::-webkit-scrollbar-thumb{background:var(--dim2);border-radius:2px}
+
+/* ── CANVAS LAYER ── */
+#bgCanvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55}
+.noise{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity:.028;background-size:200px
+}
+
+/* ── APP ── */
+.app{position:relative;z-index:2;display:flex;flex-direction:column;min-height:100vh}
+.wrap{max-width:1440px;margin:0 auto;padding:0 22px;width:100%}
+
+/* ━━━━━━━━━━━━━━━━━━━ HEADER ━━━━━━━━━━━━━━━━━━━ */
+.hdr{
+  position:sticky;top:0;z-index:200;
+  background:rgba(4,5,15,.9);backdrop-filter:blur(28px);
+  border-bottom:1px solid var(--wire2);
+  box-shadow:0 0 40px rgba(0,0,0,.6);
+}
+.hdr-in{
+  display:flex;align-items:center;gap:14px;
+  height:64px;
+}
+.logo{
+  display:flex;align-items:center;gap:10px;
+  text-decoration:none;flex-shrink:0;
+}
+.logo-orbs{display:flex;gap:3px;align-items:center}
+.lo{width:9px;height:9px;border-radius:50%;animation:orbpulse 2.5s ease-in-out infinite}
+.lo1{background:var(--red);box-shadow:0 0 8px var(--red);animation-delay:0s}
+.lo2{background:var(--grn);box-shadow:0 0 8px var(--grn);animation-delay:.5s}
+.lo3{background:var(--blu);box-shadow:0 0 8px var(--blu);animation-delay:1s}
+.lo4{background:var(--ylw);box-shadow:0 0 8px var(--ylw);animation-delay:1.5s}
+@keyframes orbpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+.logo-name{
+  font-family:'Black Ops One',cursive;font-size:1.55rem;letter-spacing:3px;
+  background:linear-gradient(120deg,#fff 0%,var(--cyn) 50%,var(--vio) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 12px rgba(0,229,255,.3));
+}
+.hdr-mid{display:flex;align-items:center;gap:10px;margin-left:auto}
+.hchip{
+  display:flex;align-items:center;gap:7px;
+  background:var(--plate);border:1px solid var(--wire);
+  border-radius:30px;padding:5px 14px;
+  font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--dim);
+}
+.hchip strong{color:var(--txt)}
+.live-chip{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,23,68,.08);border:1px solid rgba(255,23,68,.25);
+  border-radius:30px;padding:5px 13px;
+  font-size:.68rem;font-weight:700;letter-spacing:2px;color:var(--red);
+}
+.pdot{
+  width:7px;height:7px;border-radius:50%;background:currentColor;
+  animation:blink 1.1s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 6px currentColor}50%{opacity:.15;box-shadow:none}}
+.hdr-r{display:flex;align-items:center;gap:9px}
+
+/* wallet */
+.wallet-chip{
+  display:none;align-items:center;gap:9px;
+  background:var(--plate);border:1px solid var(--grn-g);
+  border-radius:30px;padding:6px 15px;
+  box-shadow:0 0 14px rgba(0,230,118,.12);
+}
+.wdot{width:8px;height:8px;border-radius:50%;background:var(--grn);box-shadow:0 0 8px var(--grn)}
+.wlbl{font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:2px;color:var(--dim)}
+.wamt{font-family:'Share Tech Mono',monospace;font-size:.95rem;font-weight:700;color:var(--grn)}
+
+/* buttons */
+.btn{
+  font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:.82rem;
+  letter-spacing:.8px;border:none;border-radius:var(--r);cursor:pointer;
+  padding:9px 20px;transition:all var(--ease);white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.btn-ghost{background:transparent;border:1px solid var(--wire2);color:var(--dim)}
+.btn-ghost:hover{border-color:var(--vio);color:var(--vio)}
+.btn-line{background:transparent;border:1px solid var(--dim2);color:var(--dim)}
+.btn-line:hover{border-color:var(--cyn);color:var(--cyn)}
+.btn-primary{
+  background:linear-gradient(135deg,var(--vio),var(--blu));
+  color:#fff;box-shadow:0 0 20px rgba(213,0,249,.3);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(213,0,249,.5)}
+.btn-deposit{
+  background:linear-gradient(135deg,#ff6d00,var(--ylw));
+  color:#000;font-weight:700;box-shadow:0 0 20px rgba(255,200,0,.25);
+}
+.btn-deposit:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(255,200,0,.45)}
+.btn-sm{padding:7px 15px;font-size:.78rem}
+.btn-full{width:100%;justify-content:center;border-radius:var(--r);padding:14px;font-size:.95rem}
+.btn-bet{
+  font-family:'Black Ops One',cursive;letter-spacing:4px;font-size:1rem;
+  background:linear-gradient(135deg,#5c00e0,var(--vio),var(--blu));
+  background-size:200% 100%;color:#fff;
+  border:none;border-radius:var(--r);padding:15px 32px;cursor:pointer;
+  box-shadow:0 0 30px rgba(213,0,249,.4);
+  position:relative;overflow:hidden;transition:all var(--ease);
+}
+.btn-bet::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+  transform:translateX(-100%);
+}
+.btn-bet:hover:not(:disabled)::before{animation:sheen .65s ease}
+@keyframes sheen{to{transform:translateX(100%)}}
+.btn-bet:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 8px 40px rgba(213,0,249,.65)}
+.btn-bet:disabled{opacity:.28;cursor:not-allowed}
+#logoutBtn,#addFundsBtn{display:none}
+
+/* ━━━━━━━━━━━━━━━━━━━ TICKER ━━━━━━━━━━━━━━━━━━━ */
+.ticker-wrap{
+  background:var(--ink2);border-bottom:1px solid var(--wire);
+  height:28px;overflow:hidden;display:flex;align-items:center;
+}
+.ticker{display:flex;gap:40px;white-space:nowrap;animation:ticker 32s linear infinite}
+.tick-item{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--dim);display:flex;align-items:center;gap:5px}
+.tick-item b{color:var(--txt)}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ━━━━━━━━━━━━━━━━━━━ MAIN GRID ━━━━━━━━━━━━━━━━━━━ */
+.main{max-width:1440px;margin:0 auto;padding:24px 22px 48px;width:100%}
+.layout{display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start}
+@media(max-width:1024px){.layout{grid-template-columns:1fr}}
+
+/* ━━━━━━━━━━━━━━━━━━━ GAME PANEL ━━━━━━━━━━━━━━━━━━━ */
+.game-panel{
+  background:var(--plate);border:1px solid var(--wire2);
+  border-radius:var(--r3);overflow:hidden;
+  box-shadow:0 12px 60px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05);
+  position:relative;
+}
+.game-panel::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% -20%,rgba(213,0,249,.06),transparent 65%);
+}
+
+/* round bar */
+.round-bar{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:12px 24px;border-bottom:1px solid var(--wire);
+  background:rgba(0,0,0,.25);position:relative;z-index:1;
+}
+.rnum{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--dim)}
+.rnum strong{color:var(--txt)}
+
+/* timer zone */
+.timer-zone{
+  text-align:center;padding:32px 24px 26px;
+  position:relative;z-index:1;overflow:hidden;
+}
+.timer-zone::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 110%,rgba(41,121,255,.07),transparent 60%);
+  pointer-events:none;
+}
+.timer-eyebrow{
+  font-size:.6rem;font-weight:700;letter-spacing:5px;
+  text-transform:uppercase;color:var(--dim);margin-bottom:8px;
+}
+.timer-digits{
+  font-family:'Black Ops One',cursive;font-size:7rem;line-height:1;
+  letter-spacing:10px;
+  background:linear-gradient(180deg,#fff 10%,var(--cyn) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 28px rgba(0,229,255,.6));
+  transition:all .3s;position:relative;z-index:1;
+}
+.timer-digits.hot{
+  background:linear-gradient(180deg,#fff 10%,var(--red) 100%);
+  -webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(0 0 28px rgba(255,23,68,.8));
+  animation:hotpulse .5s ease-in-out infinite alternate;
+}
+@keyframes hotpulse{to{transform:scale(1.04)}}
+.timer-unit{
+  font-size:.9rem;letter-spacing:4px;color:var(--dim);
+  position:relative;z-index:1;margin-top:4px;
+}
+.progwrap{
+  height:3px;background:var(--plate2);border-radius:3px;
+  max-width:380px;margin:18px auto 14px;overflow:hidden;
+}
+.progbar{
+  height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--cyn),var(--vio));
+  box-shadow:0 0 12px var(--cyn-g);
+  transition:width 1s linear;width:100%;
+}
+.phase-pill{
+  display:inline-flex;align-items:center;gap:7px;
+  border-radius:30px;padding:6px 16px;
+  font-size:.68rem;font-weight:700;letter-spacing:2px;
+  background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.22);color:var(--grn);
+}
+.phase-pill.warn{background:rgba(255,234,0,.08);border-color:rgba(255,234,0,.22);color:var(--ylw)}
+.phase-pill.stop{background:rgba(255,23,68,.08);border-color:rgba(255,23,68,.22);color:var(--red)}
+.pdot{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
+
+/* ── COLOR CARDS ── */
+.pick-label{
+  text-align:center;font-size:.6rem;font-weight:700;
+  letter-spacing:5px;text-transform:uppercase;color:var(--dim);
+  padding:0 24px;margin-bottom:16px;position:relative;z-index:1;
+}
+.color-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+  padding:0 24px 20px;position:relative;z-index:1;
+}
+@media(max-width:600px){.color-grid{grid-template-columns:repeat(2,1fr)}}
+
+.ccard{
+  position:relative;border-radius:var(--r2);overflow:hidden;
+  cursor:pointer;border:2px solid transparent;
+  background:var(--ink3);padding:20px 12px 16px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  transition:all var(--bounce);user-select:none;
+}
+.ccard::before{
+  content:'';position:absolute;inset:0;opacity:0;
+  transition:opacity .25s;pointer-events:none;
+}
+.ccard:hover{transform:translateY(-6px) scale(1.04)}
+.ccard.picked{transform:translateY(-8px) scale(1.06)}
+.ccard:hover::before,.ccard.picked::before{opacity:1}
+
+/* per-color themes */
+.cc-r::before{background:radial-gradient(circle at 50% 110%,rgba(255,23,68,.22),transparent 60%)}
+.cc-r:hover,.cc-r.picked{border-color:var(--red);box-shadow:0 12px 40px var(--red-g),inset 0 0 20px rgba(255,23,68,.06)}
+.cc-g::before{background:radial-gradient(circle at 50% 110%,rgba(0,230,118,.22),transparent 60%)}
+.cc-g:hover,.cc-g.picked{border-color:var(--grn);box-shadow:0 12px 40px var(--grn-g),inset 0 0 20px rgba(0,230,118,.06)}
+.cc-b::before{background:radial-gradient(circle at 50% 110%,rgba(41,121,255,.22),transparent 60%)}
+.cc-b:hover,.cc-b.picked{border-color:var(--blu);box-shadow:0 12px 40px var(--blu-g),inset 0 0 20px rgba(41,121,255,.06)}
+.cc-y::before{background:radial-gradient(circle at 50% 110%,rgba(255,234,0,.22),transparent 60%)}
+.cc-y:hover,.cc-y.picked{border-color:var(--ylw);box-shadow:0 12px 40px var(--ylw-g),inset 0 0 20px rgba(255,234,0,.06)}
+.cc-v::before{background:radial-gradient(circle at 50% 110%,rgba(213,0,249,.22),transparent 60%)}
+.cc-v:hover,.cc-v.picked{border-color:var(--vio);box-shadow:0 12px 40px var(--vio-g),inset 0 0 20px rgba(213,0,249,.06)}
+.cc-c::before{background:radial-gradient(circle at 50% 110%,rgba(0,229,255,.22),transparent 60%)}
+.cc-c:hover,.cc-c.picked{border-color:var(--cyn);box-shadow:0 12px 40px var(--cyn-g),inset 0 0 20px rgba(0,229,255,.06)}
+.cc-p::before{background:radial-gradient(circle at 50% 110%,rgba(245,0,87,.22),transparent 60%)}
+.cc-p:hover,.cc-p.picked{border-color:var(--pnk);box-shadow:0 12px 40px var(--pnk-g),inset 0 0 20px rgba(245,0,87,.06)}
+.cc-w::before{background:radial-gradient(circle at 50% 110%,rgba(255,255,255,.15),transparent 60%)}
+.cc-w:hover,.cc-w.picked{border-color:var(--wht);box-shadow:0 12px 40px var(--wht-g),inset 0 0 20px rgba(255,255,255,.04)}
+
+/* sphere inside card */
+.csphere{
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;
+  position:relative;transition:transform .25s;
+}
+.csphere::after{
+  content:'';position:absolute;top:10%;left:16%;
+  width:38%;height:30%;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(255,255,255,.55),transparent 70%);
+}
+.ccard:hover .csphere,.ccard.picked .csphere{transform:scale(1.2)}
+.sp-r{background:radial-gradient(circle at 32% 28%,#ff8fa3,var(--red),#6b0018);box-shadow:0 8px 24px var(--red-g)}
+.sp-g{background:radial-gradient(circle at 32% 28%,#9effd8,var(--grn),#006040);box-shadow:0 8px 24px var(--grn-g)}
+.sp-b{background:radial-gradient(circle at 32% 28%,#8ec0ff,var(--blu),#001470);box-shadow:0 8px 24px var(--blu-g)}
+.sp-y{background:radial-gradient(circle at 32% 28%,#fff480,var(--ylw),#665000);box-shadow:0 8px 24px var(--ylw-g)}
+.sp-v{background:radial-gradient(circle at 32% 28%,#e680ff,var(--vio),#4a0080);box-shadow:0 8px 24px var(--vio-g)}
+.sp-c{background:radial-gradient(circle at 32% 28%,#80f3ff,var(--cyn),#003040);box-shadow:0 8px 24px var(--cyn-g)}
+.sp-p{background:radial-gradient(circle at 32% 28%,#ff80b0,var(--pnk),#5a0030);box-shadow:0 8px 24px var(--pnk-g)}
+.sp-w{background:radial-gradient(circle at 32% 28%,#fff,#e0e8ff,#9098c0);box-shadow:0 8px 24px var(--wht-g)}
+
+.clabel{font-family:'Black Ops One',cursive;font-size:.78rem;letter-spacing:2px;position:relative;z-index:1}
+.cc-r .clabel{color:var(--red)}.cc-g .clabel{color:var(--grn)}.cc-b .clabel{color:var(--blu)}
+.cc-y .clabel{color:var(--ylw)}.cc-v .clabel{color:var(--vio)}.cc-c .clabel{color:var(--cyn)}
+.cc-p .clabel{color:var(--pnk)}.cc-w .clabel{color:var(--wht)}
+.cmult{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--dim);position:relative;z-index:1}
+.cchk{
+  display:none;position:absolute;top:8px;right:8px;
+  width:18px;height:18px;border-radius:50%;background:var(--grn);
+  align-items:center;justify-content:center;font-size:10px;color:#000;font-weight:900;
+  box-shadow:0 0 10px var(--grn-g);z-index:2;
+}
+.ccard.picked .cchk{display:flex}
+
+/* ── BET ROW ── */
+.bet-row{
+  display:grid;grid-template-columns:1fr 1fr auto;gap:14px;
+  align-items:end;padding:18px 24px 20px;
+  border-top:1px solid var(--wire);
+  background:rgba(0,0,0,.2);position:relative;z-index:1;
+}
+@media(max-width:700px){.bet-row{grid-template-columns:1fr}}
+.bet-field{}
+.bflabel{font-size:.62rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:7px}
+.bet-input-wrap{
+  display:flex;align-items:center;
+  background:var(--ink2);border:1px solid var(--wire2);border-radius:var(--r);
+  overflow:hidden;transition:border-color .2s;
+}
+.bet-input-wrap:focus-within{border-color:var(--vio)}
+.bicurr{
+  padding:0 13px;font-size:1rem;color:var(--dim);
+  font-family:'Share Tech Mono',monospace;pointer-events:none;
+}
+.bi{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--txt);font-family:'Share Tech Mono',monospace;
+  font-size:1.15rem;font-weight:700;padding:12px 13px 12px 0;
+}
+.bi::-webkit-inner-spin-button,.bi::-webkit-outer-spin-button{appearance:none}
+.presets{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.pst{
+  font-family:'Share Tech Mono',monospace;font-size:.68rem;
+  background:var(--ink2);border:1px solid var(--wire);
+  border-radius:6px;padding:4px 10px;color:var(--dim);cursor:pointer;
+  transition:all .15s;
+}
+.pst:hover{border-color:var(--vio);color:var(--vio);background:rgba(213,0,249,.06)}
+
+.preview-box{
+  background:var(--ink2);border:1px solid var(--wire);
+  border-radius:var(--r);padding:14px;text-align:center;
+  min-height:84px;
+}
+.prev-label{font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+.prev-color{font-family:'Black Ops One',cursive;font-size:1.1rem;letter-spacing:2px}
+.prev-win{font-family:'Share Tech Mono',monospace;font-size:.8rem;color:var(--dim);margin-top:2px}
+
+/* ── RESULT REVEAL ── */
+.result-banner{
+  display:none;padding:30px 24px;text-align:center;
+  border-top:1px solid var(--wire);
+  background:var(--ink2);position:relative;z-index:1;overflow:hidden;
+}
+.result-banner.show{display:block}
+.res-ey{font-size:.6rem;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:var(--dim);margin-bottom:14px}
+.res-sphere-wrap{position:relative;width:100px;height:100px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center}
+.res-sphere{width:88px;height:88px;border-radius:50%;position:relative;z-index:1;animation:resAppear .7s cubic-bezier(.34,1.56,.64,1)}
+.res-sphere::after{content:'';position:absolute;top:12%;left:18%;width:36%;height:28%;border-radius:50%;background:radial-gradient(ellipse,rgba(255,255,255,.55),transparent 70%)}
+@keyframes resAppear{from{transform:scale(0) rotate(-180deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+.res-rings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.rring{position:absolute;border-radius:50%;border:1px solid;animation:ringout 1.8s ease-out infinite}
+.rring:nth-child(2){animation-delay:.35s}.rring:nth-child(3){animation-delay:.7s}
+@keyframes ringout{0%{width:70px;height:70px;opacity:.7}100%{width:220px;height:220px;opacity:0}}
+.res-name{font-family:'Black Ops One',cursive;font-size:2.4rem;letter-spacing:8px;margin-bottom:10px}
+.res-tag{
+  display:inline-block;padding:7px 24px;border-radius:30px;
+  font-weight:700;letter-spacing:2px;font-size:.85rem;
+}
+.res-tag.win{background:rgba(0,230,118,.1);color:var(--grn);border:1px solid rgba(0,230,118,.3)}
+.res-tag.lose{background:rgba(255,23,68,.1);color:var(--red);border:1px solid rgba(255,23,68,.3)}
+.res-tag.none{background:rgba(80,96,160,.1);color:var(--dim);border:1px solid var(--wire2)}
+
+/* history strip */
+.hist-strip{
+  display:flex;align-items:center;gap:5px;
+  padding:12px 24px;border-top:1px solid var(--wire);
+  overflow-x:auto;position:relative;z-index:1;
+}
+.hist-strip::-webkit-scrollbar{height:2px}
+.hist-strip::-webkit-scrollbar-thumb{background:var(--dim2)}
+.hlbl{font-size:.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--dim);flex-shrink:0;margin-right:6px}
+.hdot{width:24px;height:24px;border-radius:50%;flex-shrink:0;cursor:default;box-shadow:0 2px 8px rgba(0,0,0,.4);transition:transform .2s}
+.hdot:hover{transform:scale(1.35)}
+
+/* ━━━━━━━━━━━━━━━━━━━ SIDEBAR ━━━━━━━━━━━━━━━━━━━ */
+.sidebar{display:flex;flex-direction:column;gap:16px}
+
+/* stats */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--wire)}
+.sc{background:var(--plate);padding:16px;text-align:center}
+.sv{font-family:'Share Tech Mono',monospace;font-size:1.3rem;font-weight:700;line-height:1;margin-bottom:5px}
+.sl{font-size:.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+
+/* panel base */
+.panel{background:var(--plate);border:1px solid var(--wire2);border-radius:var(--r2);overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.panel+.panel{margin-top:0}
+.phdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--wire);background:rgba(0,0,0,.2)}
+.phdr-title{font-family:'Black Ops One',cursive;font-size:.8rem;letter-spacing:3px;color:var(--dim)}
+.phdr-sub{font-size:.7rem;color:var(--dim)}
+
+/* tabs */
+.tabrow{display:flex;border-bottom:1px solid var(--wire)}
+.tabbtn{
+  flex:1;padding:11px 0;font-family:'Chakra Petch',sans-serif;font-size:.72rem;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;border:none;background:transparent;
+  color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:all var(--ease);
+}
+.tabbtn.on{color:var(--vio);border-bottom-color:var(--vio)}
+.tabbtn:hover:not(.on){color:var(--txt)}
+
+/* bets list */
+.betslist{display:flex;flex-direction:column;max-height:320px;overflow-y:auto}
+.betslist::-webkit-scrollbar{width:3px}
+.betslist::-webkit-scrollbar-thumb{background:var(--dim2)}
+.bitem{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.03);
+  font-size:.78rem;transition:background .15s;
+}
+.bitem:hover{background:rgba(255,255,255,.02)}
+.bpip{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.binfo{flex:1;min-width:0}
+.brnd{font-size:.62rem;color:var(--dim);font-family:'Share Tech Mono',monospace}
+.bcol{font-weight:700;font-size:.82rem}
+.bamt{font-family:'Share Tech Mono',monospace;font-size:.78rem;color:var(--dim)}
+.bres{font-family:'Share Tech Mono',monospace;font-weight:700;font-size:.82rem;flex-shrink:0}
+.bres.win{color:var(--grn)}.bres.lose{color:var(--red)}.bres.pend{color:var(--ylw)}
+.empty-state{padding:28px;text-align:center;color:var(--dim);font-size:.8rem}
+.empty-ico{font-size:2rem;display:block;margin-bottom:8px;opacity:.4}
+
+/* leaderboard */
+.litem{
+  display:flex;align-items:center;gap:11px;
+  padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.03);
+}
+.lrank{font-family:'Black Ops One',cursive;font-size:.95rem;width:24px;text-align:center;flex-shrink:0;color:var(--dim)}
+.lrank.g1{color:var(--gold);text-shadow:0 0 10px rgba(255,196,0,.5)}
+.lrank.g2{color:#c0c0c0}.lrank.g3{color:#cd7f32}
+.lavatar{
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--vio),var(--blu));
+  display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:800;
+}
+.lname{font-size:.84rem;font-weight:700;flex:1}
+.lsub{font-size:.64rem;color:var(--dim);margin-top:1px}
+.lprofit{font-family:'Share Tech Mono',monospace;font-size:.82rem;color:var(--grn);font-weight:700}
+
+/* ━━━━━━━━━━━━━━━━━━━ MODALS ━━━━━━━━━━━━━━━━━━━ */
+.overlay{
+  display:none;position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,.88);backdrop-filter:blur(14px);
+  align-items:center;justify-content:center;padding:16px;
+}
+.overlay.open{display:flex}
+.mbox{
+  background:var(--plate);border:1px solid var(--wire2);
+  border-radius:var(--r3);max-width:460px;width:100%;
+  position:relative;overflow:hidden;
+  animation:mboxIn .35s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes mboxIn{from{opacity:0;transform:scale(.84) translateY(24px)}to{opacity:1;transform:none}}
+.mbar{
+  height:3px;position:absolute;top:0;left:0;right:0;
+  background:linear-gradient(90deg,var(--red),var(--ylw),var(--grn),var(--cyn),var(--vio),var(--pnk),var(--red));
+  background-size:300% 100%;animation:rainbarMove 3s linear infinite;
+}
+@keyframes rainbarMove{0%{background-position:0 0}100%{background-position:300% 0}}
+.mhdr{padding:28px 28px 0;position:relative}
+.mclose{
+  position:absolute;top:18px;right:18px;width:30px;height:30px;border-radius:50%;
+  background:var(--ink3);border:1px solid var(--wire);color:var(--dim);
+  cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;
+  transition:all var(--ease);z-index:1;
+}
+.mclose:hover{border-color:var(--red);color:var(--red)}
+.mtitle{font-family:'Black Ops One',cursive;font-size:1.5rem;letter-spacing:3px;margin-bottom:4px}
+.msub{font-size:.78rem;color:var(--dim);margin-bottom:22px}
+.mbody{padding:0 28px 28px}
+.fld{margin-bottom:13px}
+.fld label{display:block;font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+.finp{
+  width:100%;background:var(--ink);border:1px solid var(--wire2);
+  border-radius:var(--r);padding:11px 15px;font-family:'Chakra Petch',sans-serif;
+  font-size:.9rem;color:var(--txt);outline:none;transition:border-color .2s;
+}
+.finp:focus{border-color:var(--vio)}
+.auth-tabs{display:flex;gap:4px;background:var(--ink2);border-radius:var(--r);padding:4px;margin-bottom:24px}
+.atab{
+  flex:1;padding:9px;border-radius:8px;border:none;background:transparent;
+  color:var(--dim);font-family:'Chakra Petch',sans-serif;font-weight:700;
+  font-size:.82rem;cursor:pointer;transition:all var(--ease);
+}
+.atab.on{background:var(--ink);color:var(--txt);box-shadow:0 2px 12px rgba(0,0,0,.4)}
+.auth-logo{text-align:center;margin-bottom:22px}
+.auth-logo-name{font-family:'Black Ops One',cursive;font-size:1.8rem;letter-spacing:4px;background:linear-gradient(120deg,#fff,var(--cyn),var(--vio));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.auth-logo-tag{font-size:.72rem;color:var(--dim);margin-top:3px}
+.mswitch{text-align:center;font-size:.78rem;color:var(--dim);margin-top:12px}
+.mswitch a{color:var(--vio);cursor:pointer;text-decoration:none}
+.mswitch a:hover{text-decoration:underline}
+.hidden{display:none!important}
+.chkrow{display:flex;align-items:center;gap:9px;margin-bottom:14px;font-size:.78rem;color:var(--dim);cursor:pointer}
+.chkrow input{accent-color:var(--vio);width:15px;height:15px;cursor:pointer}
+
+/* deposit */
+.amt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.achip{
+  background:var(--ink2);border:1px solid var(--wire2);border-radius:var(--r);
+  padding:11px 6px;text-align:center;cursor:pointer;font-family:'Share Tech Mono',monospace;
+  font-size:.85rem;font-weight:700;transition:all var(--ease);
+}
+.achip:hover,.achip.on{border-color:var(--ylw);color:var(--ylw);background:rgba(255,234,0,.07)}
+.dep-summary{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--ink2);border:1px solid var(--wire);border-radius:var(--r);
+  padding:12px 16px;margin-bottom:14px;
+}
+.dep-lbl{font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+.dep-amt{font-family:'Share Tech Mono',monospace;font-size:1.25rem;font-weight:700;color:var(--grn)}
+.pmrow{display:flex;justify-content:center;gap:8px;margin-top:14px}
+.pmbadge{
+  background:var(--ink2);border:1px solid var(--wire);border-radius:6px;
+  padding:4px 10px;font-size:.65rem;font-weight:700;color:var(--dim);letter-spacing:1px;
+}
+.sec-note{text-align:center;font-size:.68rem;color:var(--dim);margin-top:10px}
+
+/* ━━━━━━━━━━━━━━━━━━━ WIN SCREEN ━━━━━━━━━━━━━━━━━━━ */
+.win-screen{
+  display:none;position:fixed;inset:0;z-index:800;
+  background:rgba(0,0,0,.92);backdrop-filter:blur(20px);
+  align-items:center;justify-content:center;flex-direction:column;
+  text-align:center;padding:24px;
+}
+.win-screen.show{display:flex}
+.win-emoji{font-size:5rem;animation:float 2s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.win-title{
+  font-family:'Black Ops One',cursive;font-size:4rem;letter-spacing:8px;
+  background:linear-gradient(135deg,var(--gold),var(--grn));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin:16px 0 10px;animation:winPop .55s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes winPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+.win-amount{
+  font-family:'Share Tech Mono',monospace;font-size:3.2rem;font-weight:700;
+  color:var(--grn);text-shadow:0 0 40px var(--grn-g);margin-bottom:10px;
+}
+.win-detail{font-size:.9rem;color:var(--dim);margin-bottom:32px}
+
+/* toast */
+.toasts{position:fixed;bottom:22px;right:22px;z-index:900;display:flex;flex-direction:column;gap:9px}
+.toast{
+  display:flex;align-items:center;gap:11px;
+  background:var(--plate2);border:1px solid var(--wire2);
+  border-radius:var(--r2);padding:12px 17px;
+  min-width:268px;max-width:360px;
+  box-shadow:0 8px 40px rgba(0,0,0,.6);
+  animation:tSlide .38s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes tSlide{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+.toast.ok{border-color:rgba(0,230,118,.3)}.toast.err{border-color:rgba(255,23,68,.3)}
+.toast.inf{border-color:rgba(41,121,255,.3)}.toast.wrn{border-color:rgba(255,234,0,.3)}
+.t-ico{font-size:1.2rem;flex-shrink:0}.t-msg{font-size:.82rem;font-weight:600}
+
+/* confetti canvas */
+#confCvs{position:fixed;inset:0;z-index:850;pointer-events:none;display:none}
+
+/* ━━━━━━━━━━━━━━━━━━━ RESPONSIVE ━━━━━━━━━━━━━━━━━━━ */
+@media(max-width:640px){
+  .hdr-in{height:56px}
+  .logo-name{font-size:1.2rem}
+  .hdr-mid{display:none}
+  .timer-digits{font-size:4.5rem}
+  .main{padding:14px 14px 40px}
+  .mbox{border-radius:var(--r2)}
+}
 </style>
 </head>
 <body>
+<canvas id="bgCanvas"></canvas>
+<div class="noise"></div>
+<canvas id="confCvs"></canvas>
 
-<!-- HEADER -->
-<header>
-  <div class="logo">ChromaBet</div>
-  <div class="header-right">
-    <div class="wallet-badge" id="walletBadge" style="display:none">
-      <span>Balance</span>
-      ₹<span id="walletAmount">0.00</span>
+<div class="app">
+
+<!-- ████ HEADER ████ -->
+<header class="hdr">
+<div class="hdr-in wrap">
+  <a href="#" class="logo">
+    <div class="logo-orbs">
+      <span class="lo lo1"></span><span class="lo lo2"></span>
+      <span class="lo lo3"></span><span class="lo lo4"></span>
     </div>
-    <button class="btn btn-outline" id="btnAddFunds" style="display:none" onclick="openAddFunds()">+ Add Funds</button>
-    <button class="btn btn-primary" id="btnLogin" onclick="openLogin()">Sign In</button>
-    <button class="btn btn-outline" id="btnRegister" onclick="openRegister()">Register</button>
-    <button class="btn btn-outline" id="btnLogout" style="display:none" onclick="logout()">Logout</button>
+    <div class="logo-name">CHROMABET</div>
+  </a>
+
+  <nav class="hdr-mid">
+    <div class="live-chip"><span class="pdot"></span>LIVE</div>
+    <div class="hchip">Round <strong id="navRound">—</strong></div>
+    <div class="hchip"><span style="color:var(--grn);margin-right:3px">●</span><strong id="navOnline">—</strong> online</div>
+    <div class="hchip">Pool <strong id="navPool">—</strong></div>
+  </nav>
+
+  <div class="hdr-r">
+    <div class="wallet-chip" id="walletChip">
+      <div class="wdot"></div>
+      <span class="wlbl">BALANCE</span>
+      <span class="wamt" id="walletAmt">₹0</span>
+    </div>
+    <button class="btn btn-deposit btn-sm" id="addFundsBtn" onclick="openM('mdDeposit')">＋ Add Funds</button>
+    <button class="btn btn-ghost btn-sm" id="logoutBtn" onclick="doLogout()">Sign Out</button>
+    <button class="btn btn-line btn-sm" id="loginBtn" onclick="openM('mdAuth')">Sign In</button>
+    <button class="btn btn-primary btn-sm" id="registerBtn" onclick="openM('mdAuth')">Play Now</button>
   </div>
+</div>
 </header>
 
-<main>
-
-  <!-- GAME HEADER -->
-  <div class="game-header">
-    <div class="game-title">COLOR PREDICTION</div>
-    <div class="game-subtitle"><span class="live-dot"></span>Live — Round results every 60 seconds</div>
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker" id="ticker">
+    <span class="tick-item">🔴 RED <b>1.95×</b></span>
+    <span class="tick-item">🟢 GREEN <b>1.95×</b></span>
+    <span class="tick-item">🔵 BLUE <b>3.5×</b></span>
+    <span class="tick-item">🟡 YELLOW <b>6×</b></span>
+    <span class="tick-item">🟣 VIOLET <b>8×</b></span>
+    <span class="tick-item">🩵 CYAN <b>10×</b></span>
+    <span class="tick-item">🩷 PINK <b>14×</b></span>
+    <span class="tick-item">⚪ WHITE <b>18×</b></span>
+    <span class="tick-item">🏆 Last: <b id="tLast">—</b></span>
+    <span class="tick-item">🔴 RED <b>1.95×</b></span>
+    <span class="tick-item">🟢 GREEN <b>1.95×</b></span>
+    <span class="tick-item">🔵 BLUE <b>3.5×</b></span>
+    <span class="tick-item">🟡 YELLOW <b>6×</b></span>
+    <span class="tick-item">🟣 VIOLET <b>8×</b></span>
+    <span class="tick-item">🩵 CYAN <b>10×</b></span>
+    <span class="tick-item">🩷 PINK <b>14×</b></span>
+    <span class="tick-item">⚪ WHITE <b>18×</b></span>
+    <span class="tick-item">🏆 Last: <b>—</b></span>
   </div>
+</div>
 
-  <!-- STATS ROW -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-value" id="statTotalBets" style="color:var(--cyan)">0</div>
-      <div class="stat-label">Total Bets</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="statWins" style="color:var(--green)">0</div>
-      <div class="stat-label">Wins</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="statWinRate" style="color:var(--amber)">0%</div>
-      <div class="stat-label">Win Rate</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="statProfit" style="color:var(--violet)">₹0</div>
-      <div class="stat-label">Net Profit</div>
-    </div>
-  </div>
+<!-- ████ MAIN ████ -->
+<div class="main">
+<div class="layout">
 
-  <!-- TIMER -->
-  <div class="timer-section">
-    <div class="round-badge">Round <strong id="roundNum">#2847</strong></div>
-    <div class="timer-box">
-      <div class="timer-label">Next Result In</div>
-      <div class="timer-value" id="timerDisplay">60</div>
-    </div>
-    <div class="round-badge">Phase: <strong id="phaseLabel" style="color:var(--cyan)">BETTING</strong></div>
-  </div>
-  <div class="progress-wrap">
-    <div class="progress-bar" id="progressBar" style="width:100%"></div>
-  </div>
+<!-- LEFT: GAME -->
+<div>
+<div class="game-panel">
 
-  <!-- COLOR CARDS -->
-  <div class="color-grid">
-    <div class="color-card card-red" onclick="selectColor('RED', 2.0, this)">
-      <div class="color-orb orb-red"></div>
-      <div class="card-name" style="color:var(--red)">RED</div>
-      <div class="card-multiplier">2.0× Multiplier</div>
-    </div>
-    <div class="color-card card-green" onclick="selectColor('GREEN', 2.0, this)">
-      <div class="color-orb orb-green"></div>
-      <div class="card-name" style="color:var(--green)">GREEN</div>
-      <div class="card-multiplier">2.0× Multiplier</div>
-    </div>
-    <div class="color-card card-blue" onclick="selectColor('BLUE', 3.0, this)">
-      <div class="color-orb orb-blue"></div>
-      <div class="card-name" style="color:var(--blue)">BLUE</div>
-      <div class="card-multiplier">3.0× Multiplier</div>
-    </div>
-    <div class="color-card card-violet" onclick="selectColor('VIOLET', 4.0, this)">
-      <div class="color-orb orb-violet"></div>
-      <div class="card-name" style="color:var(--violet)">VIOLET</div>
-      <div class="card-multiplier">4.0× Multiplier</div>
-    </div>
-    <div class="color-card card-amber" onclick="selectColor('AMBER', 5.0, this)">
-      <div class="color-orb orb-amber"></div>
-      <div class="card-name" style="color:var(--amber)">AMBER</div>
-      <div class="card-multiplier">5.0× Multiplier</div>
-    </div>
-    <div class="color-card card-cyan" onclick="selectColor('CYAN', 6.0, this)">
-      <div class="color-orb orb-cyan"></div>
-      <div class="card-name" style="color:var(--cyan)">CYAN</div>
-      <div class="card-multiplier">6.0× Multiplier</div>
+  <!-- round bar -->
+  <div class="round-bar">
+    <div class="live-chip"><span class="pdot"></span>LIVE</div>
+    <div class="rnum">Round <strong id="roundNum">—</strong></div>
+    <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+      <div class="phase-pill" id="phasePill"><span class="pdot"></span><span id="phaseLabel">BETTING OPEN</span></div>
     </div>
   </div>
 
-  <!-- BET PANEL -->
-  <div class="bet-panel">
-    <div class="bet-panel-title">Place Your Bet</div>
-    <div class="bet-row">
+  <!-- timer -->
+  <div class="timer-zone">
+    <div class="timer-eyebrow">RESULT DRAWS IN</div>
+    <div class="timer-digits" id="timerD">60</div>
+    <div class="timer-unit">SECONDS</div>
+    <div class="progwrap"><div class="progbar" id="progBar"></div></div>
+    <div class="phase-pill" id="phasePill2" style="margin-top:0"><span class="pdot"></span><span id="phaseLabel2">BETTING OPEN</span></div>
+  </div>
+
+  <!-- color pick -->
+  <div class="pick-label">CHOOSE YOUR COLOR</div>
+  <div class="color-grid" id="colorGrid">
+    <div class="ccard cc-r" data-color="RED" data-mult="1.95" onclick="pickColor(this)">
+      <div class="cchk">✓</div><div class="csphere sp-r"></div>
+      <div class="clabel">RED</div><div class="cmult">×1.95</div>
+    </div>
+    <div class="ccard cc-g" data-color="GREEN" data-mult="1.95" onclick="pickColor(this)">
+      <div class="cchk">✓</div><div class="csphere sp-g"></div>
+      <div class="clabel">GREEN</div><div class="cmult">×1.95</div>
+    </div>
+    <div class="ccard cc-b" data-color="BLUE" data-mult="3.5" onclick="pickColor(this)">
+      <div class="cchk">✓</div><div class="csphere sp-b"></div>
+      <div class="clabel">BLUE</div><div class="cmult">×3.5</div>
+    </div>
+    <div class="ccard cc-y" data-color="YELLOW" data-mult="6" onclick="pickColor(this)">
+      <div class="cchk">✓</div><div class="csphere sp-y"></div>
+      <div class="clabel">YELLOW</div><div class="cmult">×6</div>
+    </div>
+    <div class="ccard cc-v" data-color="VIOLET" data-mult="8" onclick="pickColor(this)">
+      <div class="cchk">✓</div><div class="csphere sp-v"></div>
+      <div class="clabel">VIOLET</div><div class="cmult">×8</div>
+    </div>
+    <div class="ccard cc-c" data-color="CYAN" data-mult="10" onclick="pickColor(this)">
+      <div class="cchk">✓</div><div class="csphere sp-c"></div>
+      <div class="clabel">CYAN</div><div class="cmult">×10</div>
+    </div>
+    <div class="ccard cc-p" data-color="PINK" data-mult="14" onclick="pickColor(this)">
+      <div class="cchk">✓</div><div class="csphere sp-p"></div>
+      <div class="clabel">PINK</div><div class="cmult">×14</div>
+    </div>
+    <div class="ccard cc-w" data-color="WHITE" data-mult="18" onclick="pickColor(this)">
+      <div class="cchk">✓</div><div class="csphere sp-w"></div>
+      <div class="clabel">WHITE</div><div class="cmult">×18</div>
+    </div>
+  </div>
+
+  <!-- bet row -->
+  <div class="bet-row">
+    <div class="bet-field">
+      <div class="bflabel">Bet Amount</div>
       <div class="bet-input-wrap">
-        <label>Bet Amount (₹)</label>
-        <input type="number" class="bet-input" id="betAmount" placeholder="Enter amount..." min="10" value="100" oninput="updatePotential()">
-        <div class="quick-amounts">
-          <button class="quick-btn" onclick="setAmount(50)">₹50</button>
-          <button class="quick-btn" onclick="setAmount(100)">₹100</button>
-          <button class="quick-btn" onclick="setAmount(500)">₹500</button>
-          <button class="quick-btn" onclick="setAmount(1000)">₹1K</button>
-          <button class="quick-btn" onclick="setAmount(5000)">₹5K</button>
-          <button class="quick-btn" onclick="halfBet()">½</button>
-          <button class="quick-btn" onclick="doubleBet()">2×</button>
-        </div>
+        <span class="bicurr">₹</span>
+        <input class="bi" type="number" id="betAmt" value="100" min="10" step="10" oninput="refreshPreview()"/>
       </div>
-      <div class="selected-color-display">
-        <div class="label">Selected</div>
-        <div class="value" id="selectedColorDisplay" style="color:var(--muted)">NONE</div>
+      <div class="presets">
+        <button class="pst" onclick="sa(50)">₹50</button>
+        <button class="pst" onclick="sa(100)">₹100</button>
+        <button class="pst" onclick="sa(500)">₹500</button>
+        <button class="pst" onclick="sa(1000)">₹1K</button>
+        <button class="pst" onclick="sa(5000)">₹5K</button>
+        <button class="pst" onclick="halfBet()">½</button>
+        <button class="pst" onclick="dblBet()">2×</button>
       </div>
-      <button class="btn-place-bet" id="placeBetBtn" onclick="placeBet()" disabled>PLACE BET</button>
     </div>
-    <div class="potential-win">
-      Potential Win: <strong id="potentialWin">₹0.00</strong>
-      <span style="color:var(--muted);font-size:0.8rem" id="selectedMultiplier"></span>
+    <div class="bet-field">
+      <div class="bflabel">Selected</div>
+      <div class="preview-box">
+        <div class="prev-label">COLOR</div>
+        <div class="prev-color" id="prevColor" style="color:var(--dim)">—</div>
+        <div class="prev-win" id="prevWin">Potential: ₹0</div>
+      </div>
     </div>
-  </div>
-
-  <!-- RESULT REVEAL -->
-  <div class="result-section" id="resultSection">
-    <div class="timer-label" style="margin-bottom:0.5rem">ROUND RESULT</div>
-    <div class="result-orb spin-reveal" id="resultOrb"></div>
-    <div class="result-label">Winning Color</div>
-    <div class="result-color" id="resultColor">—</div>
-    <div class="result-outcome" id="resultOutcome"></div>
-  </div>
-
-  <!-- HISTORY DOTS -->
-  <div class="section-title">Recent Results</div>
-  <div class="history-dots" id="historyDots"></div>
-
-  <!-- TABS -->
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('myBets', this)">My Bets</button>
-    <button class="tab" onclick="switchTab('leaderboard', this)">Leaderboard</button>
-  </div>
-
-  <!-- MY BETS -->
-  <div id="myBetsTab">
-    <div class="bets-table">
-      <table>
-        <thead>
-          <tr>
-            <th>Round</th>
-            <th>Color</th>
-            <th>Amount</th>
-            <th>Result</th>
-            <th>Profit/Loss</th>
-          </tr>
-        </thead>
-        <tbody id="betsTableBody">
-          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">No bets yet. Place your first bet!</td></tr>
-        </tbody>
-      </table>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+      <button class="btn-bet" id="betBtn" disabled onclick="doBet()">
+        <span id="betBtnTxt">PLACE BET</span>
+      </button>
+      <div style="font-size:.65rem;color:var(--dim);text-align:center">Min ₹10</div>
     </div>
   </div>
 
-  <!-- LEADERBOARD -->
-  <div id="leaderboardTab" style="display:none">
-    <div class="leaderboard" id="leaderboardList"></div>
+  <!-- result reveal -->
+  <div class="result-banner" id="resultBanner">
+    <div class="res-ey">— ROUND RESULT —</div>
+    <div class="res-sphere-wrap">
+      <div class="res-sphere" id="resSphere"></div>
+      <div class="res-rings">
+        <div class="rring" id="rring1"></div>
+        <div class="rring" id="rring2"></div>
+        <div class="rring" id="rring3"></div>
+      </div>
+    </div>
+    <div class="res-name" id="resName">—</div>
+    <div class="res-tag none" id="resTag">Waiting...</div>
   </div>
 
-</main>
-
-<!-- LOGIN MODAL -->
-<div class="modal-overlay" id="loginModal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('loginModal')">✕</button>
-    <div class="modal-title">Welcome Back</div>
-    <div class="modal-sub">Sign in to your ChromaBet account</div>
-    <div class="form-group">
-      <label>Email Address</label>
-      <input type="email" class="form-input" id="loginEmail" placeholder="you@example.com">
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" class="form-input" id="loginPassword" placeholder="••••••••">
-    </div>
-    <button class="btn btn-primary" style="width:100%;padding:12px;font-size:1rem;border-radius:10px" onclick="login()">Sign In</button>
-    <div class="modal-switch">Don't have an account? <a onclick="switchModal('loginModal','registerModal')">Register here</a></div>
+  <!-- history strip -->
+  <div class="hist-strip">
+    <span class="hlbl">History</span>
+    <div id="histRow" style="display:flex;gap:5px;overflow-x:auto"></div>
   </div>
-</div>
 
-<!-- REGISTER MODAL -->
-<div class="modal-overlay" id="registerModal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('registerModal')">✕</button>
-    <div class="modal-title">Create Account</div>
-    <div class="modal-sub">Join ChromaBet and start winning</div>
-    <div class="form-group">
-      <label>Full Name</label>
-      <input type="text" class="form-input" id="regName" placeholder="Your name">
+</div><!-- /game-panel -->
+</div><!-- /left -->
+
+<!-- RIGHT: SIDEBAR -->
+<div class="sidebar">
+
+  <!-- stats -->
+  <div class="panel">
+    <div class="phdr"><div class="phdr-title">SESSION STATS</div></div>
+    <div class="stats-grid">
+      <div class="sc"><div class="sv" id="stBets" style="color:var(--cyn)">0</div><div class="sl">Bets</div></div>
+      <div class="sc"><div class="sv" id="stWins" style="color:var(--grn)">0</div><div class="sl">Wins</div></div>
+      <div class="sc"><div class="sv" id="stRate" style="color:var(--ylw)">0%</div><div class="sl">Win Rate</div></div>
+      <div class="sc"><div class="sv" id="stPnl" style="color:var(--vio)">₹0</div><div class="sl">Net P&L</div></div>
     </div>
-    <div class="form-group">
-      <label>Email Address</label>
-      <input type="email" class="form-input" id="regEmail" placeholder="you@example.com">
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" class="form-input" id="regPassword" placeholder="Min. 8 characters">
-    </div>
-    <div class="form-group">
-      <label>Phone Number</label>
-      <input type="tel" class="form-input" id="regPhone" placeholder="+91 XXXXX XXXXX">
-    </div>
-    <button class="btn btn-primary" style="width:100%;padding:12px;font-size:1rem;border-radius:10px" onclick="register()">Create Account</button>
-    <div class="modal-switch">Already have an account? <a onclick="switchModal('registerModal','loginModal')">Sign in</a></div>
   </div>
-</div>
 
-<!-- ADD FUNDS MODAL -->
-<div class="modal-overlay" id="fundsModal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('fundsModal')">✕</button>
-    <div class="modal-title">Add Funds</div>
-    <div class="modal-sub">Securely powered by Razorpay</div>
-    <div class="amount-grid">
-      <div class="amount-option" onclick="selectAmount(100, this)">₹100</div>
-      <div class="amount-option" onclick="selectAmount(250, this)">₹250</div>
-      <div class="amount-option" onclick="selectAmount(500, this)">₹500</div>
-      <div class="amount-option" onclick="selectAmount(1000, this)">₹1,000</div>
-      <div class="amount-option" onclick="selectAmount(2000, this)">₹2,000</div>
-      <div class="amount-option" onclick="selectAmount(5000, this)">₹5,000</div>
+  <!-- bets + leaderboard -->
+  <div class="panel">
+    <div class="tabrow">
+      <button class="tabbtn on" id="tb1" onclick="swTab(1)">My Bets</button>
+      <button class="tabbtn" id="tb2" onclick="swTab(2)">Leaderboard</button>
     </div>
-    <div class="form-group">
-      <label>Or Enter Custom Amount</label>
-      <input type="number" class="form-input" id="customAmount" placeholder="Enter amount in ₹" min="100">
+    <div id="pane1">
+      <div class="betslist" id="betsList">
+        <div class="empty-state"><span class="empty-ico">🎲</span>No bets yet. Pick a color!</div>
+      </div>
     </div>
-    <button class="btn btn-primary" style="width:100%;padding:12px;font-size:1rem;border-radius:10px;margin-top:0.5rem" onclick="initiatePayment()">
-      💳 Pay with Razorpay
-    </button>
-    <div style="text-align:center;margin-top:0.8rem;font-size:0.75rem;color:var(--muted)">
-      🔒 SSL Encrypted · UPI · Cards · Net Banking · Wallets
+    <div id="pane2" style="display:none">
+      <div id="lbList"></div>
     </div>
+  </div>
+
+</div><!-- /sidebar -->
+</div><!-- /layout -->
+</div><!-- /main -->
+
+</div><!-- /app -->
+
+<!-- ████ MODALS ████ -->
+
+<!-- Auth Modal -->
+<div class="overlay" id="mdAuth" onclick="overlayClose(event,'mdAuth')">
+<div class="mbox">
+  <div class="mbar"></div>
+  <div class="mhdr">
+    <button class="mclose" onclick="closeM('mdAuth')">✕</button>
+    <div class="auth-tabs">
+      <button class="atab on" id="atLogin" onclick="swAuth('login')">Sign In</button>
+      <button class="atab" id="atReg" onclick="swAuth('reg')">Register</button>
+    </div>
+  </div>
+  <div class="mbody">
+    <!-- Login -->
+    <form id="fLogin" onsubmit="doLogin(event)">
+      <div class="auth-logo"><div class="auth-logo-name">CHROMABET</div><div class="auth-logo-tag">Your next big win is one click away</div></div>
+      <div class="fld"><label>Email Address</label><input class="finp" type="email" id="lemail" placeholder="you@example.com" required autocomplete="email"/></div>
+      <div class="fld"><label>Password</label><input class="finp" type="password" id="lpass" placeholder="••••••••" required autocomplete="current-password"/></div>
+      <button type="submit" class="btn btn-primary btn-full" id="loginSubmit">Sign In</button>
+      <div class="mswitch">No account? <a onclick="swAuth('reg')">Register free →</a></div>
+    </form>
+    <!-- Register -->
+    <form id="fReg" class="hidden" onsubmit="doRegister(event)">
+      <div class="auth-logo"><div class="auth-logo-name">CHROMABET</div><div class="auth-logo-tag">Get ₹100 welcome bonus on signup!</div></div>
+      <div class="fld"><label>Full Name</label><input class="finp" type="text" id="rname" placeholder="Your name" required/></div>
+      <div class="fld"><label>Email Address</label><input class="finp" type="email" id="remail" placeholder="you@example.com" required autocomplete="email"/></div>
+      <div class="fld"><label>Password <span style="font-size:.7em;font-weight:400">(min 8 chars)</span></label><input class="finp" type="password" id="rpass" placeholder="Choose strong password" minlength="8" required autocomplete="new-password"/></div>
+      <div class="fld"><label>Phone Number</label><input class="finp" type="tel" id="rphone" placeholder="+91 98765 43210"/></div>
+      <div class="chkrow"><input type="checkbox" id="terms" required/><label for="terms">I am 18+ and agree to Terms of Service</label></div>
+      <button type="submit" class="btn btn-primary btn-full" id="regSubmit">Create Account</button>
+      <div class="mswitch">Have account? <a onclick="swAuth('login')">Sign in →</a></div>
+    </form>
   </div>
 </div>
-
-<!-- NOTIFICATION -->
-<div class="notification" id="notification">
-  <span class="notif-icon" id="notifIcon">✅</span>
-  <span class="notif-text" id="notifText">Success</span>
 </div>
+
+<!-- Deposit Modal -->
+<div class="overlay" id="mdDeposit" onclick="overlayClose(event,'mdDeposit')">
+<div class="mbox">
+  <div class="mbar"></div>
+  <div class="mhdr">
+    <button class="mclose" onclick="closeM('mdDeposit')">✕</button>
+    <div class="mtitle">Add Funds</div>
+    <div class="msub">Instant · Secure · Powered by Razorpay</div>
+  </div>
+  <div class="mbody">
+    <div class="amt-grid" id="amtGrid">
+      <div class="achip" onclick="pickDep(100,this)">₹100</div>
+      <div class="achip" onclick="pickDep(250,this)">₹250</div>
+      <div class="achip" onclick="pickDep(500,this)">₹500</div>
+      <div class="achip" onclick="pickDep(1000,this)">₹1,000</div>
+      <div class="achip" onclick="pickDep(2000,this)">₹2,000</div>
+      <div class="achip" onclick="pickDep(5000,this)">₹5,000</div>
+    </div>
+    <div class="fld">
+      <label>Custom Amount (₹)</label>
+      <input class="finp" type="number" id="depCustom" placeholder="Enter amount (min ₹100)" min="100" oninput="onDepCustom()"/>
+    </div>
+    <div class="dep-summary">
+      <span class="dep-lbl">YOU PAY</span>
+      <span class="dep-amt" id="depDisplay">₹0</span>
+    </div>
+    <button class="btn btn-deposit btn-full" onclick="startPayment()">💳 Pay with Razorpay</button>
+    <div class="pmrow">
+      <div class="pmbadge">UPI</div>
+      <div class="pmbadge">Cards</div>
+      <div class="pmbadge">NetBanking</div>
+      <div class="pmbadge">Wallets</div>
+    </div>
+    <div class="sec-note">🔒 256-bit SSL · PCI DSS Compliant · Instant wallet credit</div>
+  </div>
+</div>
+</div>
+
+<!-- Win Screen -->
+<div class="win-screen" id="winScreen">
+  <div class="win-emoji">🏆</div>
+  <div class="win-title">YOU WON!</div>
+  <div class="win-amount" id="winAmt"></div>
+  <div class="win-detail" id="winDetail"></div>
+  <button class="btn btn-primary" onclick="closeWin()">Collect & Continue</button>
+</div>
+
+<!-- Toasts -->
+<div class="toasts" id="toastWrap"></div>
 
 <script>
-// ═══════════════════════════════════════════
-// SUPABASE CONFIGURATION
-// ═══════════════════════════════════════════
-const SUPABASE_URL = 'https://tcodfznjlcgbqsxkypnb.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_Uh_acNmTNhFS3wbBPBaXNg_d82Vj516';
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* ════════════════════════════════════════════════════════════
+   CHROMABET — Full Application Script
+   Supabase Backend + Razorpay Payments + Live Game Engine
+════════════════════════════════════════════════════════════ */
 
-// ═══════════════════════════════════════════
-// RAZORPAY CONFIGURATION
-// ═══════════════════════════════════════════
-const RAZORPAY_KEY_ID = 'YOUR_RAZORPAY_KEY_ID'; // rzp_test_XXXXXXXX
-
-// ═══════════════════════════════════════════
-// APP STATE
-// ═══════════════════════════════════════════
-let currentUser = null;
-let userBalance = 0;
-let selectedColor = null;
-let selectedMultiplier = 1;
-let currentRound = 2847;
-let timerSeconds = 60;
-let timerInterval = null;
-let isBettingOpen = true;
-let addFundsAmount = 0;
-let sessionBets = [];
-let sessionStats = { bets: 0, wins: 0, profit: 0 };
-
-// Color CSS mappings
-const colorMap = {
-  RED: { var: 'var(--red)', orbClass: 'orb-red' },
-  GREEN: { var: 'var(--green)', orbClass: 'orb-green' },
-  BLUE: { var: 'var(--blue)', orbClass: 'orb-blue' },
-  VIOLET: { var: 'var(--violet)', orbClass: 'orb-violet' },
-  AMBER: { var: 'var(--amber)', orbClass: 'orb-amber' },
-  CYAN: { var: 'var(--cyan)', orbClass: 'orb-cyan' },
+/* ── CONFIG — Replace these three values ── */
+const CFG = {
+  SB_URL  : 'https://tcodfznjlcgbqsxkypnb.supabase.co',       // e.g. https://xxxx.supabase.co
+  SB_KEY  : 'sb_publishable_Uh_acNmTNhFS3wbBPBaXNg_d82Vj516',  // anon/public key
+  RZP_KEY : 'YOUR_RAZORPAY_KEY_ID',    // rzp_test_xxxx or rzp_live_xxxx
+  ROUND_S : 60,   // seconds per round
+  CLOSE_S : 12,   // seconds before end to close bets
 };
 
-// ═══════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════
-async function init() {
-  await checkSession();
-  startTimer();
-  seedHistory();
-  populateLeaderboard();
+/* ── COLOR TABLE ── */
+const CTAB = {
+  RED:    { hex:'#ff1744', glow:'rgba(255,23,68,.5)',   mult:1.95, wt:35, sp:'sp-r', emoji:'🔴' },
+  GREEN:  { hex:'#00e676', glow:'rgba(0,230,118,.5)',   mult:1.95, wt:33, sp:'sp-g', emoji:'🟢' },
+  BLUE:   { hex:'#2979ff', glow:'rgba(41,121,255,.5)',  mult:3.5,  wt:16, sp:'sp-b', emoji:'🔵' },
+  YELLOW: { hex:'#ffea00', glow:'rgba(255,234,0,.5)',   mult:6,    wt:9,  sp:'sp-y', emoji:'🟡' },
+  VIOLET: { hex:'#d500f9', glow:'rgba(213,0,249,.5)',   mult:8,    wt:4,  sp:'sp-v', emoji:'🟣' },
+  CYAN:   { hex:'#00e5ff', glow:'rgba(0,229,255,.5)',   mult:10,   wt:1.5,sp:'sp-c', emoji:'🩵' },
+  PINK:   { hex:'#f50057', glow:'rgba(245,0,87,.5)',    mult:14,   wt:.8, sp:'sp-p', emoji:'🩷' },
+  WHITE:  { hex:'#e0e8ff', glow:'rgba(224,232,255,.3)', mult:18,   wt:.7, sp:'sp-w', emoji:'⚪' },
+};
+
+/* ── STATE ── */
+let SB        = null;
+let user      = null;
+let balance   = 0;
+let selColor  = null;
+let selMult   = 0;
+let roundId   = 3000 + Math.floor(Math.random()*2000);
+let secs      = CFG.ROUND_S;
+let loop      = null;
+let betsOpen  = true;
+let activeBet = null;    // {color, amount, mult}
+let depAmt    = 0;
+let myBets    = [];
+let sessStats = { bets:0, wins:0, wagered:0, returned:0 };
+let histLog   = [];
+
+const DEMO = () => CFG.SB_URL === 'YOUR_SUPABASE_URL';
+const g    = id => document.getElementById(id);
+const fmt  = n  => parseFloat(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtI = n  => Math.round(n||0).toLocaleString('en-IN');
+
+/* ════════════════════════════════════════
+   SUPABASE
+════════════════════════════════════════ */
+function initSB() {
+  if (DEMO()) return;
+  SB = supabase.createClient(CFG.SB_URL, CFG.SB_KEY);
+  SB.auth.onAuthStateChange(async (evt, ses) => {
+    if (ses) { user = ses.user; await loadProfile(); setLoggedIn(true); }
+    else     { user = null; balance = 0; setLoggedIn(false); }
+  });
+  SB.auth.getSession().then(({data:{session:ses}}) => {
+    if (ses) { user = ses.user; loadProfile().then(()=>setLoggedIn(true)); }
+  });
 }
 
-async function checkSession() {
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-      currentUser = session.user;
-      await loadUserProfile();
-      updateAuthUI(true);
-    }
-  } catch (e) {
-    // Supabase not configured — demo mode
-    console.log('Supabase not configured, running in demo mode');
+async function loadProfile() {
+  if (!SB || !user) return;
+  const {data} = await SB.from('profiles').select('*').eq('id',user.id).single();
+  if (data) { balance = data.balance || 0; refreshWallet(); }
+}
+
+async function syncBalance(nb) {
+  balance = nb; refreshWallet();
+  if (!SB || !user || DEMO()) return;
+  await SB.from('profiles').update({balance:nb}).eq('id',user.id);
+}
+
+/* ════════════════════════════════════════
+   AUTH
+════════════════════════════════════════ */
+async function doLogin(e) {
+  e.preventDefault();
+  const email = g('lemail').value.trim();
+  const pass  = g('lpass').value;
+  if (!email || !pass) return toast('Fill in all fields','err');
+  if (DEMO()) { demoLogin(email); return; }
+  const btn = g('loginSubmit');
+  btnLoad(btn, true);
+  const {error} = await SB.auth.signInWithPassword({email,password:pass});
+  btnLoad(btn, false);
+  if (error) return toast(error.message,'err');
+  closeM('mdAuth');
+  toast('Welcome back! 🎉','ok');
+}
+
+async function doRegister(e) {
+  e.preventDefault();
+  const name  = g('rname').value.trim();
+  const email = g('remail').value.trim();
+  const pass  = g('rpass').value;
+  const phone = g('rphone').value.trim();
+  if (!name||!email||!pass) return toast('Fill in required fields','err');
+  if (pass.length < 8)      return toast('Password must be ≥8 characters','err');
+  if (DEMO()) { demoLogin(email, name, true); return; }
+  const btn = g('regSubmit');
+  btnLoad(btn, true);
+  const {data, error} = await SB.auth.signUp({email, password:pass, options:{data:{name,phone}}});
+  btnLoad(btn, false);
+  if (error) return toast(error.message,'err');
+  if (data.user) {
+    await SB.from('profiles').insert({id:data.user.id,email,name,phone,balance:100});
+    await SB.from('transactions').insert({user_id:data.user.id,type:'bonus',amount:100,description:'Welcome bonus'});
   }
+  closeM('mdAuth');
+  toast('Account created! ₹100 welcome bonus credited 🎁','ok',5000);
 }
 
-async function loadUserProfile() {
-  try {
-    const { data } = await sb.from('users').select('*').eq('id', currentUser.id).single();
-    if (data) {
-      userBalance = data.balance || 0;
-      updateWallet();
-    }
-  } catch (e) {
-    userBalance = 1000; // Demo balance
-    updateWallet();
-  }
+function demoLogin(email, name='Player', isNew=false) {
+  user    = {id:'demo',email,user_metadata:{name}};
+  balance = isNew ? 100 : 2000;
+  refreshWallet(); setLoggedIn(true); closeM('mdAuth');
+  toast(isNew ? 'Account created! ₹100 bonus (Demo Mode) 🎁' : 'Signed in — Demo Mode 🎮','ok');
 }
 
-// ═══════════════════════════════════════════
-// AUTH
-// ═══════════════════════════════════════════
-async function login() {
-  const email = document.getElementById('loginEmail').value;
-  const password = document.getElementById('loginPassword').value;
-  if (!email || !password) return notify('Please fill all fields', 'error');
-
-  try {
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    currentUser = data.user;
-    await loadUserProfile();
-    updateAuthUI(true);
-    closeModal('loginModal');
-    notify('Welcome back! 🎉', 'success');
-  } catch (e) {
-    // Demo mode login
-    currentUser = { id: 'demo', email };
-    userBalance = 5000;
-    updateWallet();
-    updateAuthUI(true);
-    closeModal('loginModal');
-    notify('Logged in (Demo Mode)', 'info');
-  }
+async function doLogout() {
+  if (!DEMO() && SB) await SB.auth.signOut();
+  user = null; balance = 0;
+  setLoggedIn(false);
+  selColor = null; selMult = 0; activeBet = null;
+  document.querySelectorAll('.ccard').forEach(c=>c.classList.remove('picked'));
+  refreshPreview(); g('betBtn').disabled = true;
+  toast('Signed out','inf');
 }
 
-async function register() {
-  const name = document.getElementById('regName').value;
-  const email = document.getElementById('regEmail').value;
-  const password = document.getElementById('regPassword').value;
-  const phone = document.getElementById('regPhone').value;
-  if (!name || !email || !password) return notify('Please fill all required fields', 'error');
-  if (password.length < 8) return notify('Password must be at least 8 characters', 'error');
-
-  try {
-    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name, phone } } });
-    if (error) throw error;
-    // Insert into users table
-    await sb.from('users').insert({ id: data.user.id, name, email, phone, balance: 0 });
-    notify('Account created! Please check your email to verify.', 'success');
-    closeModal('registerModal');
-  } catch (e) {
-    // Demo register
-    currentUser = { id: 'demo', email, name };
-    userBalance = 1000;
-    updateWallet();
-    updateAuthUI(true);
-    closeModal('registerModal');
-    notify('Account created (Demo Mode) — ₹1,000 bonus credited!', 'success');
-  }
+function setLoggedIn(on) {
+  ['walletChip','addFundsBtn','logoutBtn'].forEach(id=>g(id).style.display=on?'flex':'none');
+  ['loginBtn','registerBtn'].forEach(id=>g(id).style.display=on?'none':'');
+  if (on) refreshWallet();
 }
+function refreshWallet() { g('walletAmt').textContent = '₹'+fmtI(balance); }
 
-async function logout() {
-  await sb.auth.signOut().catch(() => {});
-  currentUser = null;
-  userBalance = 0;
-  updateAuthUI(false);
-  notify('Logged out successfully', 'info');
-}
-
-function updateAuthUI(loggedIn) {
-  document.getElementById('btnLogin').style.display = loggedIn ? 'none' : 'inline-block';
-  document.getElementById('btnRegister').style.display = loggedIn ? 'none' : 'inline-block';
-  document.getElementById('btnLogout').style.display = loggedIn ? 'inline-block' : 'none';
-  document.getElementById('btnAddFunds').style.display = loggedIn ? 'inline-block' : 'none';
-  document.getElementById('walletBadge').style.display = loggedIn ? 'flex' : 'none';
-}
-
-function updateWallet() {
-  document.getElementById('walletAmount').textContent = userBalance.toFixed(2);
-}
-
-// ═══════════════════════════════════════════
-// GAME TIMER
-// ═══════════════════════════════════════════
-function startTimer() {
-  timerSeconds = 60;
-  isBettingOpen = true;
-  updateTimerUI();
-
-  timerInterval = setInterval(() => {
-    timerSeconds--;
-    updateTimerUI();
-
-    if (timerSeconds === 10) {
-      document.getElementById('phaseLabel').textContent = 'CLOSING BETS';
-      document.getElementById('phaseLabel').style.color = 'var(--amber)';
-    }
-
-    if (timerSeconds <= 0) {
-      clearInterval(timerInterval);
-      isBettingOpen = false;
-      document.getElementById('phaseLabel').textContent = 'DRAWING';
-      document.getElementById('phaseLabel').style.color = 'var(--red)';
-      document.getElementById('placeBetBtn').disabled = true;
-      setTimeout(revealResult, 1500);
+/* ════════════════════════════════════════
+   GAME LOOP
+════════════════════════════════════════ */
+function startRound() {
+  secs = CFG.ROUND_S; betsOpen = true; activeBet = null;
+  refreshTimerUI(); updateRoundUI();
+  setPhase('open');
+  if (selColor && user) g('betBtn').disabled = false;
+  clearInterval(loop);
+  loop = setInterval(() => {
+    secs--;
+    refreshTimerUI();
+    if (secs === CFG.CLOSE_S) { setPhase('warn'); toast(`⚠️ ${CFG.CLOSE_S}s to place bets!`,'wrn'); }
+    if (secs <= 0) {
+      clearInterval(loop); betsOpen = false;
+      g('betBtn').disabled = true;
+      setPhase('draw');
+      setTimeout(resolveRound, 1800);
     }
   }, 1000);
 }
 
-function updateTimerUI() {
-  document.getElementById('timerDisplay').textContent = timerSeconds;
-  const pct = (timerSeconds / 60) * 100;
-  document.getElementById('progressBar').style.width = pct + '%';
+function refreshTimerUI() {
+  const el = g('timerD');
+  el.textContent = secs;
+  el.className = 'timer-digits' + (secs <= CFG.CLOSE_S ? ' hot' : '');
+  const pct = (secs / CFG.ROUND_S) * 100;
+  g('progBar').style.width = pct + '%';
+  g('progBar').style.background = secs <= CFG.CLOSE_S
+    ? 'linear-gradient(90deg,var(--red),var(--pnk))'
+    : 'linear-gradient(90deg,var(--cyn),var(--vio))';
+  g('progBar').style.boxShadow = secs <= CFG.CLOSE_S
+    ? '0 0 14px var(--red-g)' : '0 0 14px var(--cyn-g)';
 }
 
-// ═══════════════════════════════════════════
-// COLOR SELECTION & BETTING
-// ═══════════════════════════════════════════
-function selectColor(color, multiplier, el) {
-  if (!isBettingOpen) return notify('Betting is closed for this round', 'error');
-  if (!currentUser) { openLogin(); return; }
-
-  document.querySelectorAll('.color-card').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedColor = color;
-  selectedMultiplier = multiplier;
-
-  const display = document.getElementById('selectedColorDisplay');
-  display.textContent = color;
-  display.style.color = colorMap[color].var;
-
-  document.getElementById('placeBetBtn').disabled = false;
-  document.getElementById('selectedMultiplier').textContent = `at ${multiplier}×`;
-  updatePotential();
+function updateRoundUI() {
+  g('roundNum').textContent = '#' + roundId;
+  g('navRound').textContent = '#' + roundId;
 }
 
-function updatePotential() {
-  const amount = parseFloat(document.getElementById('betAmount').value) || 0;
-  const win = selectedColor ? (amount * selectedMultiplier).toFixed(2) : '0.00';
-  document.getElementById('potentialWin').textContent = '₹' + win;
-}
-
-function setAmount(val) {
-  document.getElementById('betAmount').value = val;
-  updatePotential();
-}
-
-function halfBet() {
-  const v = parseFloat(document.getElementById('betAmount').value) || 100;
-  setAmount(Math.max(10, Math.floor(v / 2)));
-}
-
-function doubleBet() {
-  const v = parseFloat(document.getElementById('betAmount').value) || 100;
-  setAmount(v * 2);
-}
-
-async function placeBet() {
-  if (!currentUser) return openLogin();
-  if (!selectedColor) return notify('Select a color first', 'error');
-  if (!isBettingOpen) return notify('Betting is closed', 'error');
-
-  const amount = parseFloat(document.getElementById('betAmount').value);
-  if (!amount || amount < 10) return notify('Minimum bet is ₹10', 'error');
-  if (amount > userBalance) return notify('Insufficient balance', 'error');
-
-  // Deduct from balance
-  userBalance -= amount;
-  updateWallet();
-
-  const betData = {
-    user_id: currentUser.id,
-    round: currentRound,
-    color: selectedColor,
-    amount,
-    multiplier: selectedMultiplier,
-    status: 'pending',
-    created_at: new Date().toISOString()
+function setPhase(mode) {
+  const pills  = [g('phasePill'), g('phasePill2')];
+  const labels = [g('phaseLabel'), g('phaseLabel2')];
+  const map    = {
+    open: {txt:'BETTING OPEN',  cls:'phase-pill'},
+    warn: {txt:'CLOSING BETS',  cls:'phase-pill warn'},
+    draw: {txt:'DRAWING RESULT',cls:'phase-pill stop'},
   };
+  const {txt,cls} = map[mode] || map.open;
+  pills.forEach(p  => { p.className=cls; });
+  labels.forEach(l => { l.textContent=txt; });
+}
 
-  try {
-    await sb.from('bets').insert(betData);
-  } catch (e) {
-    console.log('Demo mode: bet stored locally');
+/* ════════════════════════════════════════
+   WEIGHTED RANDOM RESULT
+════════════════════════════════════════ */
+function drawColor() {
+  const entries = Object.entries(CTAB);
+  const total   = entries.reduce((s,[,v])=>s+v.wt, 0);
+  let   roll    = Math.random() * total;
+  for (const [name, meta] of entries) {
+    roll -= meta.wt;
+    if (roll <= 0) return name;
+  }
+  return entries[entries.length-1][0];
+}
+
+/* ════════════════════════════════════════
+   RESOLVE ROUND
+════════════════════════════════════════ */
+function resolveRound() {
+  const winner = drawColor();
+  const wmeta  = CTAB[winner];
+
+  /* update ticker */
+  g('tLast').textContent = wmeta.emoji + ' ' + winner;
+
+  /* show result banner */
+  showResultBanner(winner, wmeta);
+  pushHistoryDot(winner, wmeta);
+
+  /* settle bet */
+  const bet = activeBet;
+  let histRow = {round:roundId, result:winner, bet:null, amount:null, won:null, pnl:0};
+
+  if (bet) {
+    const won    = bet.color === winner;
+    const payout = won ? parseFloat((bet.amount * bet.mult).toFixed(2)) : 0;
+    const pnl    = won ? payout - bet.amount : -bet.amount;
+    histRow      = {...histRow, bet:bet.color, amount:bet.amount, won, payout, pnl};
+
+    sessStats.bets++;
+    sessStats.wagered  += bet.amount;
+    if (won) { sessStats.wins++; sessStats.returned += payout; }
+
+    const nb = parseFloat((balance + (won?payout:0)).toFixed(2));
+    syncBalance(nb);
+    saveBetDB(bet, winner, won, payout);
+
+    if (won) {
+      g('resTag').className = 'res-tag win';
+      g('resTag').textContent = `🏆 YOU WIN ₹${fmt(payout)}!`;
+      showWin(payout, bet.color, bet.amount, bet.mult);
+    } else {
+      g('resTag').className = 'res-tag lose';
+      g('resTag').textContent = `❌ Lost ₹${fmt(bet.amount)} — ${winner} won`;
+      toast(`${wmeta.emoji} ${winner} won this round`,'inf');
+    }
+    activeBet = null;
+  } else {
+    g('resTag').className = 'res-tag none';
+    g('resTag').textContent = 'No bet placed this round';
+    toast(`${wmeta.emoji} Result: ${winner}`,'inf');
   }
 
-  sessionBets.unshift({ ...betData, id: Date.now() });
-  sessionStats.bets++;
-  updateStats();
+  myBets.unshift(histRow);
+  if (myBets.length > 30) myBets.pop();
+  renderBets();
+  renderStats();
 
-  notify(`✅ Bet of ₹${amount} on ${selectedColor} placed!`, 'success');
-  document.getElementById('placeBetBtn').disabled = true;
-  renderBetsTable();
+  /* next round */
+  setTimeout(() => {
+    g('resultBanner').classList.remove('show');
+    g('resultBanner').style.background = '';
+    roundId++;
+    selColor = null; selMult = 0;
+    document.querySelectorAll('.ccard').forEach(c=>c.classList.remove('picked'));
+    refreshPreview();
+    g('betBtn').disabled = true;
+    g('betBtnTxt').textContent = 'PLACE BET';
+    document.querySelectorAll('.ccard').forEach(c=>c.style.opacity='');
+    startRound();
+  }, 6000);
 }
 
-// ═══════════════════════════════════════════
-// RESULT REVEAL
-// ═══════════════════════════════════════════
-function revealResult() {
-  const colors = ['RED', 'GREEN', 'BLUE', 'VIOLET', 'AMBER', 'CYAN'];
-  const weights = [30, 30, 20, 12, 5, 3]; // Weighted probability
-  const winningColor = weightedRandom(colors, weights);
+async function saveBetDB(bet, result, won, payout) {
+  if (!SB || !user || user.id==='demo') return;
+  await SB.from('bets').insert({
+    user_id:bet.color, round_id:roundId, color:bet.color,
+    amount:bet.amount, multiplier:bet.mult, result, won, payout, status:'settled'
+  });
+  if (won) await SB.from('transactions').insert({
+    user_id:user.id, type:'win', amount:payout,
+    description:`Win — Round #${roundId}`, status:'completed'
+  });
+}
 
-  // Show result
-  const rs = document.getElementById('resultSection');
-  rs.classList.add('show');
+/* ════════════════════════════════════════
+   COLOR SELECTION
+════════════════════════════════════════ */
+function pickColor(tile) {
+  if (!betsOpen) { toast('Betting is closed for this round','wrn'); return; }
+  if (!user) { openM('mdAuth'); toast('Sign in to place bets','inf'); return; }
+  document.querySelectorAll('.ccard').forEach(c=>c.classList.remove('picked'));
+  tile.classList.add('picked');
+  selColor = tile.dataset.color;
+  selMult  = parseFloat(tile.dataset.mult);
+  refreshPreview();
+  g('betBtn').disabled = false;
+}
 
-  const orb = document.getElementById('resultOrb');
-  orb.className = 'result-orb spin-reveal ' + colorMap[winningColor].orbClass;
+function refreshPreview() {
+  const amt  = parseFloat(g('betAmt').value) || 0;
+  const meta = selColor ? CTAB[selColor] : null;
+  g('prevColor').textContent = selColor || '—';
+  g('prevColor').style.color = meta ? meta.hex : 'var(--dim)';
+  g('prevWin').textContent   = meta && amt > 0
+    ? `Potential: ₹${fmt(amt * selMult)}`
+    : 'Potential: ₹0';
+  g('betBtnTxt').textContent = selColor && amt > 0
+    ? `BET ₹${fmtI(amt)}`
+    : 'PLACE BET';
+}
 
-  const rc = document.getElementById('resultColor');
-  rc.textContent = winningColor;
-  rc.style.color = colorMap[winningColor].var;
+function sa(n) { g('betAmt').value = n; refreshPreview(); }
+function halfBet() { sa(Math.max(10, Math.floor((parseFloat(g('betAmt').value)||200)/2))); }
+function dblBet()  { sa(Math.min((parseFloat(g('betAmt').value)||100)*2, balance||999999)); }
 
-  // Update bets
-  let outcome = '';
-  sessionBets.forEach(bet => {
-    if (bet.round === currentRound && bet.status === 'pending') {
-      if (bet.color === winningColor) {
-        const winAmount = bet.amount * bet.multiplier;
-        userBalance += winAmount;
-        bet.status = 'win';
-        bet.payout = winAmount;
-        sessionStats.wins++;
-        sessionStats.profit += (winAmount - bet.amount);
-        outcome = `🎉 YOU WIN ₹${winAmount.toFixed(2)}!`;
-      } else {
-        bet.status = 'lose';
-        bet.payout = 0;
-        sessionStats.profit -= bet.amount;
-        outcome = `❌ Better luck next round`;
-      }
-    }
+/* ════════════════════════════════════════
+   PLACE BET
+════════════════════════════════════════ */
+async function doBet() {
+  if (!user)     { openM('mdAuth'); return; }
+  if (!selColor) { toast('Pick a color first!','wrn'); return; }
+  if (!betsOpen) { toast('Betting is closed for this round','wrn'); return; }
+  const amt = parseFloat(g('betAmt').value);
+  if (!amt || amt < 10) { toast('Minimum bet is ₹10','err'); return; }
+  if (amt > balance)    { toast('Insufficient balance — add funds!','err'); return; }
+
+  await syncBalance(parseFloat((balance - amt).toFixed(2)));
+  activeBet = {color:selColor, amount:amt, mult:selMult};
+
+  g('betBtn').disabled = true;
+  g('betBtnTxt').textContent = '✓ BET PLACED';
+
+  document.querySelectorAll('.ccard').forEach(c => {
+    if (!c.classList.contains('picked')) c.style.opacity = '.35';
+  });
+  toast(`✅ ₹${fmtI(amt)} on ${selColor} × ${selMult}`,'ok');
+}
+
+/* ════════════════════════════════════════
+   RESULT BANNER
+════════════════════════════════════════ */
+function showResultBanner(name, meta) {
+  const banner = g('resultBanner');
+  banner.classList.add('show');
+  banner.style.background = `radial-gradient(ellipse at 50% 0%,${meta.glow.replace('.5','.06')},transparent 70%)`;
+
+  const sphere = g('resSphere');
+  sphere.className = `res-sphere ${meta.sp}`;
+  sphere.style.boxShadow = `0 0 60px ${meta.glow}, 0 20px 60px ${meta.glow}`;
+
+  [g('rring1'),g('rring2'),g('rring3')].forEach(r => {
+    r.style.borderColor = meta.hex;
+    r.style.boxShadow   = `0 0 12px ${meta.glow}`;
   });
 
-  document.getElementById('resultOutcome').textContent = outcome;
-  document.getElementById('resultOutcome').className = 'result-outcome ' + (outcome.includes('WIN') ? 'win' : 'lose');
-  if (outcome) notify(outcome, outcome.includes('WIN') ? 'success' : 'error');
-
-  updateWallet();
-  updateStats();
-  renderBetsTable();
-
-  // Add to history
-  addHistoryDot(winningColor);
-
-  // Start next round after delay
-  setTimeout(() => {
-    rs.classList.remove('show');
-    currentRound++;
-    document.getElementById('roundNum').textContent = '#' + currentRound;
-    document.getElementById('phaseLabel').textContent = 'BETTING';
-    document.getElementById('phaseLabel').style.color = 'var(--cyan)';
-    document.getElementById('placeBetBtn').disabled = !selectedColor;
-    startTimer();
-  }, 5000);
+  g('resName').textContent = name;
+  g('resName').style.color = meta.hex;
+  g('resTag').className    = 'res-tag none';
+  g('resTag').textContent  = 'Settling bets...';
+  document.querySelectorAll('.ccard').forEach(c=>c.style.opacity='');
 }
 
-function weightedRandom(items, weights) {
-  const total = weights.reduce((a, b) => a + b, 0);
-  let r = Math.random() * total;
-  for (let i = 0; i < items.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return items[i];
-  }
-  return items[items.length - 1];
+/* ════════════════════════════════════════
+   HISTORY DOTS
+════════════════════════════════════════ */
+function pushHistoryDot(name, meta) {
+  histLog.unshift({name, meta});
+  if (histLog.length > 28) histLog.pop();
+  renderHistDots();
 }
 
-// ═══════════════════════════════════════════
-// HISTORY
-// ═══════════════════════════════════════════
-const historyColors = [];
+function renderHistDots() {
+  const row = g('histRow');
+  row.innerHTML = histLog.map((h, i) =>
+    `<div class="hdot" title="${h.name}"
+      style="background:${h.meta.hex};opacity:${1-i*.032};box-shadow:0 0 8px ${h.meta.glow}"></div>`
+  ).join('');
+}
 
 function seedHistory() {
-  const colors = ['RED', 'GREEN', 'BLUE', 'RED', 'GREEN', 'AMBER', 'RED', 'VIOLET', 'GREEN', 'RED', 'CYAN', 'GREEN', 'RED', 'BLUE', 'GREEN'];
-  colors.forEach(c => historyColors.push(c));
-  renderHistory();
+  const keys = Object.keys(CTAB);
+  for (let i=0;i<20;i++) {
+    const k = keys[Math.floor(Math.random()*keys.length)];
+    histLog.push({name:k, meta:CTAB[k]});
+  }
+  renderHistDots();
 }
 
-function addHistoryDot(color) {
-  historyColors.unshift(color);
-  if (historyColors.length > 20) historyColors.pop();
-  renderHistory();
-}
-
-function renderHistory() {
-  const container = document.getElementById('historyDots');
-  container.innerHTML = historyColors.map((c, i) => `
-    <div class="history-dot" style="background:${colorMap[c].var};opacity:${1 - i * 0.04}" title="${c}"></div>
-  `).join('');
-}
-
-// ═══════════════════════════════════════════
-// STATS & TABLE
-// ═══════════════════════════════════════════
-function updateStats() {
-  document.getElementById('statTotalBets').textContent = sessionStats.bets;
-  document.getElementById('statWins').textContent = sessionStats.wins;
-  const wr = sessionStats.bets ? Math.round((sessionStats.wins / sessionStats.bets) * 100) : 0;
-  document.getElementById('statWinRate').textContent = wr + '%';
-  const profit = sessionStats.profit;
-  document.getElementById('statProfit').textContent = (profit >= 0 ? '₹' : '-₹') + Math.abs(profit).toFixed(0);
-  document.getElementById('statProfit').style.color = profit >= 0 ? 'var(--green)' : 'var(--red)';
-}
-
-function renderBetsTable() {
-  const tbody = document.getElementById('betsTableBody');
-  if (!sessionBets.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">No bets yet. Place your first bet!</td></tr>';
+/* ════════════════════════════════════════
+   BETS LIST & STATS
+════════════════════════════════════════ */
+function renderBets() {
+  const el = g('betsList');
+  if (!myBets.length) {
+    el.innerHTML = '<div class="empty-state"><span class="empty-ico">🎲</span>No bets yet. Pick a color!</div>';
     return;
   }
-  tbody.innerHTML = sessionBets.map(bet => {
-    const c = colorMap[bet.color];
-    const statusClass = bet.status === 'win' ? 'status-win' : bet.status === 'lose' ? 'status-lose' : 'status-pending';
-    const statusLabel = bet.status === 'win' ? '🏆 WIN' : bet.status === 'lose' ? '✗ LOSE' : '⏳ PENDING';
-    const pl = bet.status === 'win' ? `+₹${(bet.payout - bet.amount).toFixed(2)}` : bet.status === 'lose' ? `-₹${bet.amount.toFixed(2)}` : '—';
-    return `<tr>
-      <td>#${bet.round}</td>
-      <td><span class="color-pill"><span class="color-dot" style="background:${c.var}"></span>${bet.color}</span></td>
-      <td>₹${bet.amount.toFixed(2)}</td>
-      <td class="${statusClass}">${statusLabel}</td>
-      <td class="${statusClass}">${pl}</td>
-    </tr>`;
-  }).join('');
-}
-
-// ═══════════════════════════════════════════
-// LEADERBOARD
-// ═══════════════════════════════════════════
-function populateLeaderboard() {
-  const players = [
-    { name: 'Rahul M.', bets: 142, profit: 45200 },
-    { name: 'Priya S.', bets: 98, profit: 31800 },
-    { name: 'Arjun K.', bets: 210, profit: 28500 },
-    { name: 'Neha P.', bets: 67, profit: 19200 },
-    { name: 'Vikram R.', bets: 155, profit: 15600 },
-  ];
-
-  const ranks = ['gold', 'silver', 'bronze', '', ''];
-  const rankSymbols = ['🥇', '🥈', '🥉', '4', '5'];
-
-  document.getElementById('leaderboardList').innerHTML = players.map((p, i) => `
-    <div class="leaderboard-item">
-      <div class="rank ${ranks[i]}">${rankSymbols[i]}</div>
-      <div class="player-avatar">${p.name[0]}</div>
-      <div class="player-info">
-        <div class="player-name">${p.name}</div>
-        <div class="player-bets">${p.bets} bets placed</div>
+  el.innerHTML = myBets.slice(0,25).map(b => {
+    if (!b.bet) return '';
+    const m   = CTAB[b.bet];
+    const isW = b.won, isL = !b.won;
+    const res = isW ? `+₹${fmt(b.payout)}` : `-₹${fmt(b.amount)}`;
+    return `<div class="bitem">
+      <div class="bpip" style="background:${m.hex};box-shadow:0 0 6px ${m.glow}"></div>
+      <div class="binfo">
+        <div class="brnd">#${b.round} · ${b.mult}×</div>
+        <div class="bcol" style="color:${m.hex}">${b.bet}</div>
       </div>
-      <div class="player-profit">₹${p.profit.toLocaleString()}</div>
-    </div>
-  `).join('');
+      <div class="bamt">₹${fmt(b.amount)}</div>
+      <div class="bres ${isW?'win':isL?'lose':'pend'}">${res}</div>
+    </div>`;
+  }).filter(Boolean).join('') || '<div class="empty-state"><span class="empty-ico">🎲</span>No bets yet.</div>';
 }
 
-// ═══════════════════════════════════════════
-// PAYMENTS — RAZORPAY
-// ═══════════════════════════════════════════
-function openAddFunds() {
-  if (!currentUser) return openLogin();
-  document.getElementById('fundsModal').classList.add('show');
+function renderStats() {
+  const {bets,wins,wagered,returned} = sessStats;
+  const wr  = bets ? Math.round(wins/bets*100) : 0;
+  const pnl = returned - wagered;
+  g('stBets').textContent = bets;
+  g('stWins').textContent = wins;
+  g('stRate').textContent = wr + '%';
+  const pEl = g('stPnl');
+  pEl.textContent = (pnl>=0?'+':'') + '₹' + fmtI(Math.abs(pnl));
+  pEl.style.color = pnl >= 0 ? 'var(--grn)' : 'var(--red)';
 }
 
-function selectAmount(amount, el) {
-  document.querySelectorAll('.amount-option').forEach(e => e.classList.remove('selected'));
-  el.classList.add('selected');
-  addFundsAmount = amount;
-  document.getElementById('customAmount').value = '';
+/* ════════════════════════════════════════
+   LEADERBOARD (seeded)
+════════════════════════════════════════ */
+function renderLeaderboard() {
+  const data = [
+    {name:'Arjun K.',  city:'Mumbai',    profit:94200, bets:512},
+    {name:'Priya M.',  city:'Bangalore', profit:71500, bets:298},
+    {name:'Ravi S.',   city:'Delhi',     profit:65800, bets:406},
+    {name:'Ananya R.', city:'Hyderabad', profit:53200, bets:201},
+    {name:'Kabir D.',  city:'Chennai',   profit:41700, bets:267},
+    {name:'Sneha V.',  city:'Pune',      profit:33400, bets:189},
+    {name:'Vikram N.', city:'Kolkata',   profit:27100, bets:143},
+  ];
+  const gc = ['g1','g2','g3','','','',''];
+  const gs = ['①','②','③','4','5','6','7'];
+  g('lbList').innerHTML = data.map((p,i) => `
+    <div class="litem">
+      <div class="lrank ${gc[i]}">${gs[i]}</div>
+      <div class="lavatar">${p.name[0]}</div>
+      <div>
+        <div class="lname">${p.name}</div>
+        <div class="lsub">${p.city} · ${p.bets} bets</div>
+      </div>
+      <div class="lprofit">+₹${fmtI(p.profit)}</div>
+    </div>`).join('');
 }
 
-function initiatePayment() {
-  if (!currentUser) return;
-  const customAmt = parseFloat(document.getElementById('customAmount').value);
-  const amount = customAmt || addFundsAmount;
-  if (!amount || amount < 100) return notify('Minimum deposit is ₹100', 'error');
+/* ════════════════════════════════════════
+   WIN SCREEN
+════════════════════════════════════════ */
+function showWin(payout, color, amount, mult) {
+  g('winAmt').textContent   = `+₹${fmt(payout)}`;
+  g('winDetail').textContent = `${color} × ${mult} | Bet ₹${fmt(amount)}`;
+  g('winScreen').classList.add('show');
+  confetti();
+}
+function closeWin() { g('winScreen').classList.remove('show'); }
 
-  // Load Razorpay script dynamically
+/* ════════════════════════════════════════
+   PAYMENTS — RAZORPAY
+════════════════════════════════════════ */
+function pickDep(n, el) {
+  depAmt = n;
+  document.querySelectorAll('.achip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  g('depCustom').value = '';
+  g('depDisplay').textContent = '₹' + fmtI(n);
+}
+function onDepCustom() {
+  const v = parseInt(g('depCustom').value) || 0;
+  depAmt = v;
+  document.querySelectorAll('.achip').forEach(c=>c.classList.remove('on'));
+  g('depDisplay').textContent = v > 0 ? '₹' + fmtI(v) : '₹0';
+}
+
+async function startPayment() {
+  if (!user) { closeM('mdDeposit'); openM('mdAuth'); return; }
+  const amt = depAmt;
+  if (!amt || amt < 100) { toast('Minimum deposit ₹100','err'); return; }
+  if (CFG.RZP_KEY === 'YOUR_RAZORPAY_KEY_ID' || DEMO()) {
+    closeM('mdDeposit');
+    toast('💳 Simulating payment (Demo Mode)…','inf',2200);
+    setTimeout(()=>creditWallet(amt,'DEMO_'+Date.now()), 2200);
+    return;
+  }
   if (!window.Razorpay) {
     const s = document.createElement('script');
     s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    s.onload = () => openRazorpay(amount);
     document.head.appendChild(s);
-  } else {
-    openRazorpay(amount);
+    await new Promise(r => s.onload = r);
   }
-}
-
-function openRazorpay(amount) {
-  const options = {
-    key: RAZORPAY_KEY_ID,
-    amount: amount * 100, // in paise
+  const opts = {
+    key:      CFG.RZP_KEY,
+    amount:   amt * 100,   // paise
     currency: 'INR',
-    name: 'ChromaBet',
+    name:     'CHROMABET',
     description: 'Wallet Top-up',
-    image: '',
-    handler: async function (response) {
-      // Payment successful
-      await creditWallet(amount, response.razorpay_payment_id);
-      closeModal('fundsModal');
-    },
-    prefill: {
-      name: currentUser.user_metadata?.name || '',
-      email: currentUser.email || '',
-    },
-    theme: { color: '#9b5cff' },
-    modal: {
-      ondismiss: () => notify('Payment cancelled', 'info')
-    }
+    theme:    {color:'#d500f9'},
+    prefill:  {email:user.email||'', name:user.user_metadata?.name||''},
+    handler:  async res => { await creditWallet(amt, res.razorpay_payment_id); closeM('mdDeposit'); },
+    modal:    {ondismiss:()=>toast('Payment cancelled','inf')},
   };
-
-  // If Razorpay key not configured, simulate
-  if (RAZORPAY_KEY_ID === 'YOUR_RAZORPAY_KEY_ID') {
-    simulatePayment(amount);
-    return;
-  }
-
-  const rzp = new Razorpay(options);
-  rzp.open();
+  new Razorpay(opts).open();
 }
 
-async function creditWallet(amount, paymentId = 'DEMO') {
-  userBalance += amount;
-  updateWallet();
-
-  try {
-    await sb.from('transactions').insert({
-      user_id: currentUser.id,
-      amount,
-      type: 'deposit',
-      payment_id: paymentId,
-      status: 'success',
-      created_at: new Date().toISOString()
+async function creditWallet(amt, paymentId) {
+  const nb = parseFloat((balance + amt).toFixed(2));
+  await syncBalance(nb);
+  if (SB && user && user.id !== 'demo') {
+    await SB.from('transactions').insert({
+      user_id: user.id, type:'deposit', amount:amt,
+      payment_id: paymentId, description:'Razorpay deposit', status:'completed'
     });
-    await sb.from('users').update({ balance: userBalance }).eq('id', currentUser.id);
-  } catch (e) {
-    console.log('Demo: wallet updated locally');
   }
-
-  notify(`₹${amount} added to your wallet! 🎉`, 'success');
+  toast(`₹${fmtI(amt)} added to your wallet! 🎉`, 'ok', 4500);
 }
 
-function simulatePayment(amount) {
-  closeModal('fundsModal');
-  notify('🔔 Demo mode: Razorpay payment simulated', 'info');
-  setTimeout(() => creditWallet(amount, 'DEMO_' + Date.now()), 1500);
+/* ════════════════════════════════════════
+   CONFETTI
+════════════════════════════════════════ */
+function confetti() {
+  let cvs = g('confCvs');
+  if (!cvs) { cvs = document.createElement('canvas'); cvs.id='confCvs'; cvs.style.cssText='position:fixed;inset:0;z-index:850;pointer-events:none'; document.body.appendChild(cvs); }
+  cvs.style.display = 'block';
+  cvs.width = innerWidth; cvs.height = innerHeight;
+  const ctx = cvs.getContext('2d');
+  const cols = ['#ff1744','#00e676','#2979ff','#d500f9','#ffea00','#00e5ff','#f50057','#ffffff'];
+  const pts  = Array.from({length:200},()=>({
+    x: Math.random()*cvs.width,
+    y: Math.random()*cvs.height*.35 - 20,
+    r: Math.random()*5.5+2.5,
+    c: cols[Math.floor(Math.random()*cols.length)],
+    vx:(Math.random()-.5)*9, vy:Math.random()*5+2,
+    a:1, rot:Math.random()*360, rv:(Math.random()-.5)*12,
+    w:Math.random()*11+5, h:Math.random()*6+2,
+  }));
+  let raf;
+  (function draw(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    let alive=false;
+    pts.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy; p.vy+=.14; p.a-=.005; p.rot+=p.rv;
+      if(p.a>0){alive=true;}
+      ctx.save(); ctx.globalAlpha=Math.max(0,p.a);
+      ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.c; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+    });
+    if(alive) raf=requestAnimationFrame(draw);
+    else{ctx.clearRect(0,0,cvs.width,cvs.height); cvs.style.display='none';}
+  })();
 }
 
-// ═══════════════════════════════════════════
-// UI UTILITIES
-// ═══════════════════════════════════════════
-function openLogin() { document.getElementById('loginModal').classList.add('show'); }
-function openRegister() { document.getElementById('registerModal').classList.add('show'); }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+/* ════════════════════════════════════════
+   PLASMA BACKGROUND
+════════════════════════════════════════ */
+function initBG() {
+  const cvs = g('bgCanvas');
+  const ctx  = cvs.getContext('2d');
+  let W, H;
+  function resize(){ W=cvs.width=innerWidth; H=cvs.height=innerHeight; }
+  resize(); window.addEventListener('resize', resize);
 
-function switchModal(from, to) {
-  closeModal(from);
-  setTimeout(() => document.getElementById(to).classList.add('show'), 200);
+  /* floating particles */
+  const cols = ['rgba(213,0,249,','rgba(41,121,255,','rgba(0,229,255,','rgba(255,23,68,','rgba(0,230,118,'];
+  const pts  = Array.from({length:70},()=>({
+    x: Math.random()*1440,
+    y: Math.random()*900,
+    r: Math.random()*1.8+.4,
+    vx:(Math.random()-.5)*.4,
+    vy:-Math.random()*.5-.1,
+    a: Math.random()*.35+.05,
+    c: cols[Math.floor(Math.random()*cols.length)],
+  }));
+
+  let t = 0;
+  (function loop(){
+    ctx.clearRect(0,0,W,H);
+
+    /* nebula blobs */
+    const blobs=[
+      {x:.2,y:.15,r:.35,c:'rgba(213,0,249,.055)'},
+      {x:.8,y:.8, r:.3, c:'rgba(41,121,255,.05)'},
+      {x:.5,y:.5, r:.25,c:'rgba(0,229,255,.04)'},
+    ];
+    blobs.forEach(b=>{
+      const cx = W*(b.x + .04*Math.sin(t*.00055+b.x*5));
+      const cy = H*(b.y + .04*Math.cos(t*.00065+b.y*5));
+      const grad = ctx.createRadialGradient(cx,cy,0,cx,cy,Math.min(W,H)*b.r);
+      grad.addColorStop(0, b.c);
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+    });
+
+    /* particles */
+    pts.forEach((p,i)=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.y<-10) { pts[i]={...pts[i], x:Math.random()*W, y:H+5, vy:-Math.random()*.5-.1}; }
+      if(p.x<-10||p.x>W+10) pts[i].vx*=-1;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=p.c+p.a+')'; ctx.fill();
+    });
+
+    t++; requestAnimationFrame(loop);
+  })();
 }
 
-// Close modals on overlay click
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) overlay.classList.remove('show');
+/* ════════════════════════════════════════
+   ONLINE SIMULATION
+════════════════════════════════════════ */
+function runOnlineSim() {
+  function upd() {
+    const n = 1180 + Math.floor(Math.random()*280);
+    g('navOnline').textContent = n.toLocaleString('en-IN');
+    g('navPool').textContent   = '₹'+(22000+Math.floor(Math.random()*18000)).toLocaleString('en-IN');
+  }
+  upd(); setInterval(upd, 5500);
+}
+
+/* ════════════════════════════════════════
+   MODAL HELPERS
+════════════════════════════════════════ */
+function openM(id) { g(id).classList.add('open'); }
+function closeM(id){ g(id).classList.remove('open'); }
+function overlayClose(e,id){ if(e.target===g(id)) closeM(id); }
+function swAuth(tab){
+  g('atLogin').classList.toggle('on', tab==='login');
+  g('atReg').classList.toggle('on', tab==='reg');
+  g('fLogin').classList.toggle('hidden', tab!=='login');
+  g('fReg').classList.toggle('hidden', tab!=='reg');
+}
+function swTab(n){
+  [1,2].forEach(i=>{
+    g('tb'+i).classList.toggle('on',i===n);
+    g('pane'+i).style.display=i===n?'':'none';
   });
+}
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+const TICO={ok:'✅',err:'❌',inf:'ℹ️',wrn:'⚠️'};
+let tTimer;
+function toast(msg,type='inf',dur=3400){
+  const wrap=g('toastWrap');
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span class="t-ico">${TICO[type]||'ℹ️'}</span><span class="t-msg">${msg}</span>`;
+  wrap.appendChild(el);
+  setTimeout(()=>{
+    el.style.opacity='0'; el.style.transform='translateX(40px)';
+    el.style.transition='all .3s ease';
+    setTimeout(()=>el.remove(),300);
+  }, dur);
+}
+
+function btnLoad(btn,on){
+  if(on){btn._t=btn.textContent;btn.textContent='Please wait…';btn.disabled=true;}
+  else{btn.textContent=btn._t||'Submit';btn.disabled=false;}
+}
+
+/* ════════════════════════════════════════
+   BOOT
+════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  initSB();
+  initBG();
+  startRound();
+  runOnlineSim();
+  seedHistory();
+  renderLeaderboard();
+  if (DEMO()) toast('🎮 Demo Mode — add Supabase & Razorpay keys in CFG to go live','inf',8000);
 });
-
-function switchTab(tab, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('myBetsTab').style.display = tab === 'myBets' ? 'block' : 'none';
-  document.getElementById('leaderboardTab').style.display = tab === 'leaderboard' ? 'block' : 'none';
-}
-
-let notifTimeout;
-function notify(message, type = 'info') {
-  const n = document.getElementById('notification');
-  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
-  document.getElementById('notifIcon').textContent = icons[type] || 'ℹ️';
-  document.getElementById('notifText').textContent = message;
-  n.className = 'notification show ' + type;
-  clearTimeout(notifTimeout);
-  notifTimeout = setTimeout(() => n.classList.remove('show'), 3500);
-}
-
-// ═══════════════════════════════════════════
-// START
-// ═══════════════════════════════════════════
-init();
 </script>
 </body>
 </html>
