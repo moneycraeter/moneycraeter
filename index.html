@@ -593,7 +593,72 @@ body{
 /* confetti canvas */
 #confCvs{position:fixed;inset:0;z-index:850;pointer-events:none;display:none}
 
-/* ━━━━━━━━━━━━━━━━━━━ RESPONSIVE ━━━━━━━━━━━━━━━━━━━ */
+/* ━━━━━━━━━━━━━━━━━━━ UPI PAYMENT STYLES ━━━━━━━━━━━━━━━━━━━ */
+.upi-method-label{
+  font-size:.62rem;font-weight:700;letter-spacing:3px;
+  text-transform:uppercase;color:var(--dim);margin-bottom:10px;margin-top:4px;
+}
+.upi-methods{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.upi-btn{
+  background:var(--ink2);border:1px solid var(--wire2);
+  border-radius:var(--r);padding:13px 6px;
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  cursor:pointer;font-family:'Chakra Petch',sans-serif;font-size:.72rem;
+  color:var(--dim);font-weight:600;transition:all var(--ease);
+}
+.upi-btn:hover{border-color:var(--vio);color:var(--txt);background:rgba(213,0,249,.06)}
+.upi-btn.active{border-color:var(--ylw);color:var(--ylw);background:rgba(255,234,0,.07);
+  box-shadow:0 0 18px rgba(255,234,0,.15);}
+.upi-icon{
+  width:40px;height:40px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.9rem;font-weight:900;flex-shrink:0;
+}
+.gpay-icon{background:#fff;font-size:.85rem;font-family:'Outfit',Arial,sans-serif;font-weight:700;gap:0}
+.phonepe-icon{background:linear-gradient(135deg,#5f259f,#8b25c2);color:#fff;font-size:.85rem}
+.bhim-icon{background:linear-gradient(135deg,#00529b,#0073e6);color:#fff;font-size:.72rem;letter-spacing:.5px}
+.upi-qr-wrap{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:18px;background:var(--ink2);border:1px solid var(--wire);
+  border-radius:var(--r2);margin-bottom:12px;
+}
+.upi-qr-img{
+  width:180px;height:180px;border-radius:10px;
+  background:#fff;padding:6px;display:block;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+}
+.upi-qr-cap{font-size:.65rem;color:var(--dim);letter-spacing:1px;text-align:center}
+.upi-or-divider{
+  display:flex;align-items:center;gap:10px;
+  font-size:.7rem;color:var(--dim);margin:10px 0;
+}
+.upi-or-divider::before,.upi-or-divider::after{
+  content:'';flex:1;height:1px;background:var(--wire2);
+}
+.upi-open-btn{
+  width:100%;padding:13px;border:none;border-radius:var(--r);
+  background:linear-gradient(135deg,#1a1a8c,#3d3dd4);
+  color:#fff;font-family:'Chakra Petch',sans-serif;font-weight:700;
+  font-size:.92rem;cursor:pointer;letter-spacing:.5px;
+  transition:all var(--ease);margin-bottom:16px;
+  box-shadow:0 6px 24px rgba(41,65,255,.3);
+}
+.upi-open-btn:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(41,65,255,.45)}
+.upi-txn-section{
+  background:var(--ink2);border:1px solid var(--wire);
+  border-radius:var(--r2);padding:14px;
+}
+.upi-select-prompt{
+  text-align:center;color:var(--dim);font-size:.8rem;
+  padding:14px;border:1px dashed var(--wire2);border-radius:var(--r);
+  letter-spacing:.5px;margin-bottom:10px;
+}
+.dep-flash{
+  min-height:20px;font-size:.8rem;text-align:center;
+  font-family:'Share Tech Mono',monospace;margin:6px 0;transition:color .2s;
+}
+.dep-flash.ok{color:var(--grn)}.dep-flash.err{color:var(--red)}.dep-flash.inf{color:var(--ylw)}
+
 @media(max-width:640px){
   .hdr-in{height:56px}
   .logo-name{font-size:1.2rem}
@@ -635,7 +700,7 @@ body{
       <span class="wlbl">BALANCE</span>
       <span class="wamt" id="walletAmt">₹0</span>
     </div>
-    <button class="btn btn-deposit btn-sm" id="addFundsBtn" onclick="openM('mdDeposit')">＋ Add Funds</button>
+    <button class="btn btn-deposit btn-sm" id="addFundsBtn" onclick="openDeposit()">＋ Add Funds</button>
     <button class="btn btn-ghost btn-sm" id="logoutBtn" onclick="doLogout()">Sign Out</button>
     <button class="btn btn-line btn-sm" id="loginBtn" onclick="openM('mdAuth')">Sign In</button>
     <button class="btn btn-primary btn-sm" id="registerBtn" onclick="openM('mdAuth')">Play Now</button>
@@ -866,9 +931,9 @@ body{
 <div class="mbox">
   <div class="mbar"></div>
   <div class="mhdr">
-    <button class="mclose" onclick="closeM('mdDeposit')">✕</button>
+    <button class="mclose" onclick="closeM('mdDeposit');resetDepositModal()">✕</button>
     <div class="mtitle">Add Funds</div>
-    <div class="msub">Instant · Secure · Powered by Razorpay</div>
+    <div class="msub">Instant · Secure · Pay via UPI / GPay / PhonePe</div>
   </div>
   <div class="mbody">
     <div class="amt-grid" id="amtGrid">
@@ -887,14 +952,52 @@ body{
       <span class="dep-lbl">YOU PAY</span>
       <span class="dep-amt" id="depDisplay">₹0</span>
     </div>
-    <button class="btn btn-deposit btn-full" onclick="startPayment()">💳 Pay with Razorpay</button>
-    <div class="pmrow">
-      <div class="pmbadge">UPI</div>
-      <div class="pmbadge">Cards</div>
-      <div class="pmbadge">NetBanking</div>
-      <div class="pmbadge">Wallets</div>
+
+    <!-- UPI METHOD SELECTION -->
+    <div class="upi-method-label">Choose Payment Method</div>
+    <div class="upi-methods">
+      <button class="upi-btn" id="upiBtnGpay"    onclick="selectUPI('gpay')">
+        <span class="upi-icon gpay-icon"><span style="color:#4285F4">G</span><span style="color:#EA4335">P</span><span style="color:#FBBC04">a</span><span style="color:#34A853">y</span></span>
+        <span>Google Pay</span>
+      </button>
+      <button class="upi-btn" id="upiBtnPhonepe" onclick="selectUPI('phonepe')">
+        <span class="upi-icon phonepe-icon">Pe</span>
+        <span>PhonePe</span>
+      </button>
+      <button class="upi-btn" id="upiBtnBhim"    onclick="selectUPI('bhim')">
+        <span class="upi-icon bhim-icon">UPI</span>
+        <span>UPI / BHIM</span>
+      </button>
     </div>
-    <div class="sec-note">🔒 256-bit SSL · PCI DSS Compliant · Instant wallet credit</div>
+
+    <!-- QR + DEEP LINK AREA (shown after method select) -->
+    <div id="upiPayArea" style="display:none">
+      <div class="upi-qr-wrap">
+        <img id="upiQrImg" src="" alt="UPI QR" class="upi-qr-img"/>
+        <div class="upi-qr-cap">Scan & Pay · Auto-expires in 10 min</div>
+      </div>
+      <div class="upi-or-divider"><span>OR</span></div>
+      <button class="upi-open-btn" id="upiOpenBtn" onclick="openUpiApp()">
+        <span id="upiOpenLabel">📲 Open Google Pay</span>
+      </button>
+      <div class="upi-txn-section">
+        <div class="fld" style="margin-bottom:8px">
+          <label>Enter UPI Transaction / UTR ID <span style="color:var(--ylw)">(after payment)</span></label>
+          <input class="finp" type="text" id="upiTxnId" placeholder="e.g. 402920xxxxxxxxx" autocomplete="off"/>
+        </div>
+        <button class="btn btn-deposit btn-full" onclick="verifyUpiPayment()">
+          ✅ Verify & Credit Wallet
+        </button>
+      </div>
+    </div>
+
+    <!-- BEFORE METHOD SELECTED -->
+    <div id="upiSelectPrompt" class="upi-select-prompt">
+      👆 Select a payment method above to continue
+    </div>
+
+    <div id="depFlashMsg" class="dep-flash"></div>
+    <div class="sec-note">🔒 256-bit SSL · All UPI payments are encrypted · Instant wallet credit</div>
   </div>
 </div>
 </div>
@@ -914,16 +1017,17 @@ body{
 <script>
 /* ════════════════════════════════════════════════════════════
    CHROMABET — Full Application Script
-   Supabase Backend + Razorpay Payments + Live Game Engine
+   Supabase Backend + UPI Payments (GPay/PhonePe/BHIM) + Live Game Engine
 ════════════════════════════════════════════════════════════ */
 
-/* ── CONFIG — Replace these three values ── */
+/* ── CONFIG — Replace these values ── */
 const CFG = {
-  SB_URL  : 'https://tcodfznjlcgbqsxkypnb.supabase.co',       // e.g. https://xxxx.supabase.co
-  SB_KEY  : 'sb_publishable_Uh_acNmTNhFS3wbBPBaXNg_d82Vj516',  // anon/public key
-  RZP_KEY : 'YOUR_RAZORPAY_KEY_ID',    // rzp_test_xxxx or rzp_live_xxxx
-  ROUND_S : 60,   // seconds per round
-  CLOSE_S : 12,   // seconds before end to close bets
+  SB_URL       : 'https://tcodfznjlcgbqsxkypnb.supabase.co',
+  SB_KEY       : 'sb_publishable_Uh_acNmTNhFS3wbBPBaXNg_d82Vj516',
+  MERCHANT_UPI : 'r-vallarasu@ptyes',   // ← Your UPI ID (e.g. merchant@okaxis)
+  MERCHANT_NAME: 'CHROMABET',           // ← Your business name
+  ROUND_S      : 60,
+  CLOSE_S      : 12,
 };
 
 /* ── COLOR TABLE ── */
@@ -954,7 +1058,7 @@ let myBets    = [];
 let sessStats = { bets:0, wins:0, wagered:0, returned:0 };
 let histLog   = [];
 
-const DEMO = () => CFG.SB_URL === 'YOUR_SUPABASE_URL';
+const DEMO = () => CFG.SB_URL === 'YOUR_SUPABASE_URL' || !CFG.SB_URL.startsWith('https');
 const g    = id => document.getElementById(id);
 const fmt  = n  => parseFloat(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtI = n  => Math.round(n||0).toLocaleString('en-IN');
@@ -1378,50 +1482,144 @@ function showWin(payout, color, amount, mult) {
 function closeWin() { g('winScreen').classList.remove('show'); }
 
 /* ════════════════════════════════════════
-   PAYMENTS — RAZORPAY
+   PAYMENTS — UPI / GPay / PhonePe
 ════════════════════════════════════════ */
+
+/* ── State for UPI flow ── */
+let upiMethod    = null;   // 'gpay' | 'phonepe' | 'bhim'
+let upiDeepLink  = '';
+let upiTxnRef    = '';
+
 function pickDep(n, el) {
   depAmt = n;
   document.querySelectorAll('.achip').forEach(c=>c.classList.remove('on'));
   el.classList.add('on');
   g('depCustom').value = '';
   g('depDisplay').textContent = '₹' + fmtI(n);
+  /* if method already chosen, rebuild QR/link for new amount */
+  if (upiMethod) buildUpiPayload(upiMethod, n);
 }
+
 function onDepCustom() {
   const v = parseInt(g('depCustom').value) || 0;
   depAmt = v;
   document.querySelectorAll('.achip').forEach(c=>c.classList.remove('on'));
   g('depDisplay').textContent = v > 0 ? '₹' + fmtI(v) : '₹0';
+  if (upiMethod && v >= 100) buildUpiPayload(upiMethod, v);
 }
 
-async function startPayment() {
+function selectUPI(method) {
   if (!user) { closeM('mdDeposit'); openM('mdAuth'); return; }
   const amt = depAmt;
-  if (!amt || amt < 100) { toast('Minimum deposit ₹100','err'); return; }
-  if (CFG.RZP_KEY === 'YOUR_RAZORPAY_KEY_ID' || DEMO()) {
-    closeM('mdDeposit');
-    toast('💳 Simulating payment (Demo Mode)…','inf',2200);
-    setTimeout(()=>creditWallet(amt,'DEMO_'+Date.now()), 2200);
-    return;
-  }
-  if (!window.Razorpay) {
-    const s = document.createElement('script');
-    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    document.head.appendChild(s);
-    await new Promise(r => s.onload = r);
-  }
-  const opts = {
-    key:      CFG.RZP_KEY,
-    amount:   amt * 100,   // paise
-    currency: 'INR',
-    name:     'CHROMABET',
-    description: 'Wallet Top-up',
-    theme:    {color:'#d500f9'},
-    prefill:  {email:user.email||'', name:user.user_metadata?.name||''},
-    handler:  async res => { await creditWallet(amt, res.razorpay_payment_id); closeM('mdDeposit'); },
-    modal:    {ondismiss:()=>toast('Payment cancelled','inf')},
+  if (!amt || amt < 100) { depFlash('Enter amount (min ₹100) first','err'); return; }
+
+  upiMethod = method;
+  document.querySelectorAll('.upi-btn').forEach(b => b.classList.remove('active'));
+  g('upiBtnGpay').classList.toggle('active',    method==='gpay');
+  g('upiBtnPhonepe').classList.toggle('active', method==='phonepe');
+  g('upiBtnBhim').classList.toggle('active',    method==='bhim');
+
+  g('upiSelectPrompt').style.display = 'none';
+  g('upiPayArea').style.display      = 'block';
+  buildUpiPayload(method, amt);
+}
+
+function buildUpiPayload(method, amt) {
+  upiTxnRef = 'CB' + Date.now();
+  const note = encodeURIComponent('CHROMABET Wallet ₹' + amt);
+  const pa   = encodeURIComponent(CFG.MERCHANT_UPI);
+  const pn   = encodeURIComponent(CFG.MERCHANT_NAME);
+
+  /* Universal UPI URI */
+  const upiUri = `upi://pay?pa=${pa}&pn=${pn}&am=${amt}&cu=INR&tn=${note}&tr=${upiTxnRef}`;
+
+  /* Method-specific deep links */
+  const deepMap = {
+    gpay    : `tez://upi/pay?pa=${pa}&pn=${pn}&am=${amt}&cu=INR&tn=${note}&tr=${upiTxnRef}`,
+    phonepe : `phonepe://pay?pa=${pa}&pn=${pn}&am=${amt}&cu=INR&tn=${note}&tr=${upiTxnRef}`,
+    bhim    : upiUri,
   };
-  new Razorpay(opts).open();
+  const labelMap = {
+    gpay    : '📲 Open Google Pay',
+    phonepe : '💜 Open PhonePe',
+    bhim    : '🔵 Open BHIM / UPI App',
+  };
+
+  upiDeepLink = deepMap[method] || upiUri;
+  g('upiOpenBtn').style.background = method === 'gpay'
+    ? 'linear-gradient(135deg,#1a6b35,#2ea84b)'
+    : method === 'phonepe'
+    ? 'linear-gradient(135deg,#5f259f,#8b25c2)'
+    : 'linear-gradient(135deg,#00529b,#0073e6)';
+  g('upiOpenLabel').textContent = labelMap[method];
+
+  /* Generate QR via Google Charts (no library needed) */
+  const qrUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=300x300&choe=UTF-8&chl='
+                + encodeURIComponent(upiUri);
+  g('upiQrImg').src = qrUrl;
+  g('upiTxnId').value = '';
+  depFlash(`Scan QR or tap the button to pay ₹${fmtI(amt)} via ${method.toUpperCase()}`, 'inf');
+}
+
+function openUpiApp() {
+  if (!upiDeepLink) return;
+  /* Try deep link first; fall back to universal UPI intent (Android) */
+  window.location.href = upiDeepLink;
+  setTimeout(() => {
+    try {
+      /* Android intent fallback */
+      window.location.href =
+        'intent://pay?pa=' + encodeURIComponent(CFG.MERCHANT_UPI) +
+        '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
+    } catch(e) {}
+  }, 1600);
+}
+
+async function verifyUpiPayment() {
+  const txnId = (g('upiTxnId').value || '').trim();
+  const amt   = depAmt;
+
+  if (!txnId)           return depFlash('Enter your UPI Transaction / UTR ID', 'err');
+  if (txnId.length < 8) return depFlash('Transaction ID looks too short', 'err');
+  if (!amt || amt < 100) return depFlash('Amount is invalid', 'err');
+
+  depFlash('Verifying…', 'inf');
+
+  /* Check for duplicate TXN in Supabase */
+  if (SB && user && user.id !== 'demo') {
+    const {data: existing} = await SB.from('transactions')
+      .select('id').eq('payment_id', txnId).maybeSingle();
+    if (existing) return depFlash('⚠️ This Transaction ID was already used', 'err');
+  }
+
+  /* ⚠️  PRODUCTION: Verify via your backend/webhook before crediting.
+     This demo credits the wallet after user enters the UTR. */
+
+  await creditWallet(amt, txnId);
+  depFlash(`✅ ₹${fmtI(amt)} credited to your wallet!`, 'ok');
+  setTimeout(() => {
+    closeM('mdDeposit');
+    resetDepositModal();
+  }, 2200);
+}
+
+function resetDepositModal() {
+  upiMethod = null; upiDeepLink = ''; upiTxnRef = '';
+  g('upiPayArea').style.display      = 'none';
+  g('upiSelectPrompt').style.display = 'block';
+  document.querySelectorAll('.achip').forEach(c=>c.classList.remove('on'));
+  document.querySelectorAll('.upi-btn').forEach(b=>b.classList.remove('active'));
+  g('depCustom').value = '';
+  g('depDisplay').textContent = '₹0';
+  depAmt = 0;
+  depFlash('', '');
+}
+
+function depFlash(msg, type) {
+  const el = g('depFlashMsg');
+  if (!el) return;
+  el.textContent = msg;
+  el.className   = 'dep-flash ' + (type||'');
 }
 
 async function creditWallet(amt, paymentId) {
@@ -1429,8 +1627,12 @@ async function creditWallet(amt, paymentId) {
   await syncBalance(nb);
   if (SB && user && user.id !== 'demo') {
     await SB.from('transactions').insert({
-      user_id: user.id, type:'deposit', amount:amt,
-      payment_id: paymentId, description:'Razorpay deposit', status:'completed'
+      user_id    : user.id,
+      type       : 'deposit',
+      amount     : amt,
+      payment_id : paymentId,
+      description: 'UPI deposit',
+      status     : 'completed'
     });
   }
   toast(`₹${fmtI(amt)} added to your wallet! 🎉`, 'ok', 4500);
@@ -1541,6 +1743,7 @@ function runOnlineSim() {
 /* ════════════════════════════════════════
    MODAL HELPERS
 ════════════════════════════════════════ */
+function openDeposit() { resetDepositModal(); openM('mdDeposit'); }
 function openM(id) { g(id).classList.add('open'); }
 function closeM(id){ g(id).classList.remove('open'); }
 function overlayClose(e,id){ if(e.target===g(id)) closeM(id); }
@@ -1590,7 +1793,7 @@ document.addEventListener('DOMContentLoaded', () => {
   runOnlineSim();
   seedHistory();
   renderLeaderboard();
-  if (DEMO()) toast('🎮 Demo Mode — add Supabase & Razorpay keys in CFG to go live','inf',8000);
+  if (DEMO()) toast('🎮 Demo Mode — add Supabase keys & your UPI ID in CFG to go live','inf',8000);
 });
 </script>
 </body>
