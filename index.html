@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Aviator Arcade</title>
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #fff; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .card { background-color: #1e1e1e; border-radius: 12px; padding: 25px; width: 380px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        
+        /* Auth Form & Inputs */
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 5px; color: #aaa; font-size: 0.9rem; }
+        .input-group input, .input-group select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #fff; box-sizing: border-box; }
+        
+        /* Buttons */
+        button { width: 100%; padding: 12px; font-size: 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.2s; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-secondary { background-color: #333; color: white; margin-top: 5px; }
+        .btn-success { background-color: #00ff88; color: black; display: none; }
+        .btn-deposit { background-color: #ff9900; color: black; margin-top: 10px; }
+        button:hover { opacity: 0.9; }
+
+        /* Game Screen Styles */
+        #game-screen { display: none; }
+        #multiplier-display { font-size: 3.5rem; font-weight: bold; color: #00ff88; margin: 15px 0; height: 70px; }
+        .crashed { color: #ff3b30 !important; }
+        .controls { display: flex; gap: 10px; margin-top: 15px; }
+        .controls input { width: 40%; text-align: center; }
+        #balance-display { margin-top: 15px; font-size: 1.1rem; color: #aaa; }
+        #user-info { font-size: 0.85rem; color: #666; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        #btn-logout { width: auto; padding: 4px 8px; font-size: 0.75rem; background: #ff3b30; color: white; margin: 0; }
+
+        /* Payment Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; }
+        .modal-content { background: #1e1e1e; padding: 20px; border-radius: 10px; width: 300px; text-align: left; }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN & REGISTER CARD -->
+    <div id="auth-screen" class="card">
+        <h2>Aviator Arcade</h2>
+        <div class="input-group">
+            <label>Email</label>
+            <input type="email" id="auth-email" placeholder="user@example.com">
+        </div>
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" id="auth-password" placeholder="••••••••">
+        </div>
+        <button class="btn-primary" id="btn-login">Log In</button>
+        <button class="btn-secondary" id="btn-register">Register New Account</button>
+        <p id="auth-msg" style="color: #ff3b30; font-size: 0.9rem; margin-top: 10px;"></p>
+    </div>
+
+    <!-- MAIN GAME CARD -->
+    <div id="game-screen" class="card">
+        <div id="user-info">
+            <span id="user-email-display"></span>
+            <button id="btn-logout">Logout</button>
+        </div>
+        <h3>Virtual Aviator</h3>
+        <div id="multiplier-display">1.00x</div>
+        <p id="status-msg">Place a bet to start</p>
+
+        <div class="controls">
+            <input type="number" id="bet-amount" value="10" min="1" step="1">
+            <button id="btn-bet" class="btn-primary">Place Bet</button>
+            <button id="btn-cashout" class="btn-success">Cash Out</button>
+        </div>
+
+        <div id="balance-display">Virtual Points: <span id="balance">0</span></div>
+        <button class="btn-deposit" id="btn-open-deposit">+ Add Points (UPI / GPay Demo)</button>
+    </div>
+
+    <!-- SIMULATED UPI DEPOSIT MODAL -->
+    <div id="deposit-modal" class="modal">
+        <div class="modal-content">
+            <h3>Add Points (Test Mode)</h3>
+            <div class="input-group">
+                <label>Select Amount (₹)</label>
+                <select id="deposit-amount">
+                    <option value="100">₹100 (1000 Points)</option>
+                    <option value="500">₹500 (5000 Points)</option>
+                    <option value="1000">₹1000 (10000 Points)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Payment Method</label>
+                <select id="payment-app">
+                    <option value="gpay">Google Pay UPI</option>
+                    <option value="phonepe">PhonePe UPI</option>
+                    <option value="paytm">Paytm UPI</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Virtual UPI ID </label>
+                <input type="text" id="upi-id" placeholder="r-vallarasu@ptyes">
+            </div>
+            <button class="btn-primary" id="btn-process-payment">Pay & Add Points</button>
+            <button class="btn-secondary" id="btn-close-deposit">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. SUPABASE INITIALIZATION
+        const SUPABASE_URL = 'https://nljryzkyvyuycmcyrxgq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sanJ5emt5dnl1eWNtY3lyeGdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2Nzg0NTksImV4cCI6MjEwMzI1NDQ1OX0.a3tdKTyA_xbIUk5QH61E-XDz9NJOz2gcYcMB6LMO2GM';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // State Variables
+        let currentUser = null;
+        let balance = 0;
+        let currentBet = 0;
+        let multiplier = 1.00;
+        let crashPoint = 1.00;
+        let isFlying = false;
+        let interval;
+
+        // DOM Elements
+        const authScreen = document.getElementById('auth-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const depositModal = document.getElementById('deposit-modal');
+        const authEmail = document.getElementById('auth-email');
+        const authPassword = document.getElementById('auth-password');
+        const authMsg = document.getElementById('auth-msg');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const balanceSpan = document.getElementById('balance');
+        const multiplierDisplay = document.getElementById('multiplier-display');
+        const statusMsg = document.getElementById('status-msg');
+        const betInput = document.getElementById('bet-amount');
+        const btnBet = document.getElementById('btn-bet');
+        const btnCashout = document.getElementById('btn-cashout');
+
+        // 2. AUTHENTICATION LOGIC
+        document.getElementById('btn-register').addEventListener('click', async () => {
+            authMsg.innerText = '';
+            const email = authEmail.value;
+            const password = authPassword.value;
+
+            const { data, error } = await supabase.auth.signUp({ email, password });
+            
+            if (error) {
+                authMsg.innerText = error.message;
+            } else {
+                if (data.user) {
+                    await supabase.from('profiles').insert([{ id: data.user.id, balance: 1000 }]);
+                }
+                authMsg.style.color = "#00ff88";
+                authMsg.innerText = "Registration successful! You can log in now.";
+            }
+        });
+
+        document.getElementById('btn-login').addEventListener('click', async () => {
+            authMsg.innerText = '';
+            const email = authEmail.value;
+            const password = authPassword.value;
+
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                authMsg.innerText = error.message;
+            } else {
+                currentUser = data.user;
+                loadUserData();
+            }
+        });
+
+        document.getElementById('btn-logout').addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            currentUser = null;
+            gameScreen.style.display = 'none';
+            authScreen.style.display = 'block';
+        });
+
+        async function loadUserData() {
+            userEmailDisplay.innerText = currentUser.email;
+
+            let { data, error } = await supabase.from('profiles').select('balance').eq('id', currentUser.id).single();
+
+            if (data) {
+                balance = data.balance;
+            } else {
+                balance = 1000;
+            }
+
+            updateBalanceUI();
+            authScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+        }
+
+        async function syncBalanceToSupabase() {
+            updateBalanceUI();
+            if (currentUser) {
+                await supabase.from('profiles').upsert({ id: currentUser.id, balance: balance });
+            }
+        }
+
+        // 3. SIMULATED UPI PAYMENT GATEWAY LOGIC
+        document.getElementById('btn-open-deposit').addEventListener('click', () => {
+            depositModal.style.display = 'flex';
+        });
+
+        document.getElementById('btn-close-deposit').addEventListener('click', () => {
+            depositModal.style.display = 'none';
+        });
+
+        document.getElementById('btn-process-payment').addEventListener('click', async () => {
+            const upiId = document.getElementById('upi-id').value;
+            const rupees = parseInt(document.getElementById('deposit-amount').value);
+            const provider = document.getElementById('payment-app').value;
+
+            if (!upiId || !upiId.includes('@')) {
+                alert('Please enter a valid virtual UPI ID (e.g., user@upi)');
+                return;
+            }
+
+            alert(`Processing simulated ${provider.toUpperCase()} payment of ₹${rupees}...`);
+
+            // Simulate 2-second processing delay
+            setTimeout(async () => {
+                const addedPoints = rupees * 10;
+                balance += addedPoints;
+                await syncBalanceToSupabase();
+                
+                alert(`Payment Success! Added ${addedPoints} Virtual Points to your account.`);
+                depositModal.style.display = 'none';
+            }, 1500);
+        });
+
+        // 4. GAME SIMULATION LOGIC
+        function generateCrashPoint() {
+            const e = 100 / Math.random();
+            return Math.max(1.00, (Math.floor(e) / 100));
+        }
+
+        btnBet.addEventListener('click', () => {
+            currentBet = parseInt(betInput.value);
+            if (currentBet > balance || currentBet <= 0 || isNaN(currentBet)) {
+                alert("Invalid bet amount!");
+                return;
+            }
+
+            balance -= currentBet;
+            syncBalanceToSupabase();
+            startGame();
+        });
+
+        btnCashout.addEventListener('click', () => {
+            if (!isFlying) return;
+            
+            isFlying = false;
+            clearInterval(interval);
+            
+            const winnings = Math.floor(currentBet * multiplier);
+            balance += winnings;
+            syncBalanceToSupabase();
+            
+            statusMsg.innerText = `Cashed out at ${multiplier.toFixed(2)}x! Won ${winnings} pts.`;
+            statusMsg.style.color = "#00ff88";
+            resetUI();
+        });
+
+        function startGame() {
+            isFlying = true;
+            multiplier = 1.00;
+            crashPoint = generateCrashPoint();
+            
+            btnBet.style.display = 'none';
+            btnCashout.style.display = 'block';
+            multiplierDisplay.classList.remove('crashed');
+            statusMsg.innerText = "Flying...";
+            statusMsg.style.color = "#fff";
+            
+            interval = setInterval(() => {
+                multiplier += 0.01;
+                multiplierDisplay.innerText = multiplier.toFixed(2) + "x";
+
+                if (multiplier >= crashPoint) {
+                    crashGame();
+                }
+            }, 50);
+        }
+
+        function crashGame() {
+            isFlying = false;
+            clearInterval(interval);
+            multiplierDisplay.classList.add('crashed');
+            statusMsg.innerText = `Crashed at ${multiplier.toFixed(2)}x! Lost ${currentBet} pts.`;
+            statusMsg.style.color = "#ff3b30";
+            resetUI();
+        }
+
+        function resetUI() {
+            btnCashout.style.display = 'none';
+            btnBet.style.display = 'block';
+        }
+
+        function updateBalanceUI() {
+            balanceSpan.innerText = balance;
+        }
+    </script>
+</body>
+</html>
