@@ -582,15 +582,15 @@ canvas#cc{position:fixed;inset:0;pointer-events:none;z-index:9998;display:none}
   </div>
 </div>
 
-<!-- ═══ PAYMENT OVERLAY — QR SCAN + UTR ONLY ═══ -->
+<!-- ═══ PAYMENT OVERLAY — EXACT MODEL ═══ -->
 <div class="povl" id="povl">
   <div class="psheet">
 
-    <!-- HEADER -->
+    <!-- HEADER: Amount + Timer -->
     <div class="psh-hd">
-      <div>
-        <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Add Money · UPI</div>
+      <div style="display:flex;align-items:center;gap:10px">
         <div class="psh-amt" id="pay-amt-hd">₹0</div>
+        <div style="width:22px;height:22px;border:2px solid rgba(0,230,118,.4);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer" title="Copy amount">📋</div>
       </div>
       <div style="text-align:right">
         <div style="font-size:9px;color:var(--muted);margin-bottom:2px">TIME LEFT</div>
@@ -598,82 +598,116 @@ canvas#cc{position:fixed;inset:0;pointer-events:none;z-index:9998;display:none}
       </div>
     </div>
 
-    <!-- MAIN: scan + UTR -->
+    <!-- MAIN PAYMENT SCREEN -->
     <div class="psh-body" id="pay-main">
 
-      <!-- SCAN QR -->
-      <div class="sec-row"><div class="sec-dot"></div>Use Mobile Scan code to pay</div>
-      <div class="qr-white">
-        <img id="pay-qr" src="" alt="UPI QR Code">
-        <div class="qr-upi">UPI: r-vallarasu@ptyes</div>
+      <!-- CHOOSE PAYMENT METHOD -->
+      <div class="sec-row"><div class="sec-dot" style="background:#e74c3c"></div><strong>Choose a payment method to pay</strong></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
+        <!-- Paytm -->
+        <div style="background:linear-gradient(135deg,#e3f2fd,#bbdefb);border-radius:13px;padding:14px 10px;text-align:center;cursor:pointer;border:2px solid #90caf9;transition:all .2s" onclick="selPayApp('paytm',this)" id="pab-paytm">
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:4px">
+            <div style="background:#00b9f1;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:800;color:#fff;font-style:italic">paytm</div>
+            <span style="font-size:13px;font-weight:800;color:#1565c0">Paytm</span>
+          </div>
+          <div style="font-size:10px;color:#1976d2;font-weight:600">Wake up support</div>
+        </div>
+        <!-- PhonePe -->
+        <div style="background:linear-gradient(135deg,#ede7f6,#d1c4e9);border-radius:13px;padding:14px 10px;text-align:center;cursor:pointer;border:2px solid #ce93d8;transition:all .2s" onclick="selPayApp('phonepe',this)" id="pab-phonepe">
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:4px">
+            <div style="background:#5f259f;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px">ₚ</div>
+            <span style="font-size:13px;font-weight:800;color:#4a148c">PhonePe</span>
+          </div>
+          <div style="font-size:10px;color:#6a1b9a;font-weight:600">Wake up support</div>
+        </div>
       </div>
-      <div class="qr-notice">
-        1. Please use <strong style="color:var(--gold)">another device</strong> to scan the QR code with your payment app<br>
-        2. If you scan the QR code from this device's gallery, the payment amount may be limited (≤₹2000)
+
+      <!-- SCAN QR -->
+      <div class="sec-row"><div class="sec-dot" style="background:#e74c3c"></div><strong>Use Mobile Scan code to pay</strong></div>
+      <div style="background:#f5f5f5;border-radius:14px;padding:16px;text-align:center;margin-bottom:10px;border:1px solid #e0e0e0">
+        <img id="pay-qr" src="" alt="UPI QR Code" style="width:200px;height:200px;object-fit:contain;display:block;margin:0 auto;border-radius:8px">
+        <div style="font-size:11px;color:#555;margin-top:10px;font-weight:700">UPI: r-vallarasu@ptyes · CHROMR WIN</div>
+      </div>
+      <div style="background:#fffde7;border:1px solid #f9a825;border-radius:10px;padding:11px 13px;font-size:11px;color:#5d4037;line-height:2;margin-bottom:16px;text-align:center">
+        1. Please use <strong>another device</strong> to scan the QR code with your payment app<br>
+        2. If you scan the QR code from this device's gallery, the payment amount may be limited (≤2000)
       </div>
 
       <!-- UTR INPUT -->
-      <div class="sec-row"><div class="sec-dot"></div>Input UTR / Paste UTR</div>
-      <div class="utr-warn">
-        ⚠️ If you do not back fill UTR / paste UTR, <strong>100% will fail</strong>
+      <div class="sec-row"><div class="sec-dot" style="background:#e74c3c"></div><strong>Input UTR/ Paste UTR</strong></div>
+      <div style="background:rgba(255,51,85,.07);border-left:4px solid var(--red);border-radius:0 8px 8px 0;padding:9px 13px;font-size:12px;font-weight:700;color:#ff6b6b;margin-bottom:12px;line-height:1.6">
+        If you do not back fill UTR/ paste UTR, <strong style="color:var(--red)">100% will fail.</strong>
       </div>
-      <div class="utr-row">
-        <input id="pay-utr" class="utr-field" type="tel" maxlength="12"
+      <div style="position:relative;margin-bottom:8px">
+        <input id="pay-utr" type="tel" maxlength="12"
+          style="width:100%;padding:16px 90px 16px 16px;background:#fff;border:2px solid #e0e0e0;border-radius:12px;color:#333;font-family:var(--mono);font-size:20px;font-weight:700;outline:none;letter-spacing:3px;-webkit-appearance:none;transition:all .2s"
           placeholder="Input 12 digits here"
           oninput="onUTRChange(this)"
-          onfocus="this.style.borderColor='rgba(124,77,255,.8)'">
-        <button class="paste-btn" onclick="doPaste()">Paste</button>
+          onfocus="this.style.borderColor='#7c4dff';this.style.boxShadow='0 0 0 3px rgba(124,77,255,.15)'"
+          onblur="this.style.boxShadow='none'">
+        <button onclick="doPaste()"
+          style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:#e53935;border:none;border-radius:8px;padding:9px 16px;color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+          Paste
+        </button>
       </div>
-      <div id="pay-utr-hint" class="utr-hint n">Enter 12-digit UTR from your payment app</div>
-
-      <!-- REMINDER -->
-      <div class="sec-row"><div class="sec-dot"></div>Important reminder</div>
-      <div class="reminder">
-        <ul>
-          <li>Do not pay for the same link repeatedly!</li>
-          <li>Paytm is wake up support!</li>
-        </ul>
+      <div id="pay-utr-hint" style="font-size:10px;color:var(--muted);text-align:center;margin-bottom:14px;padding:5px;border-radius:6px">
+        Enter 12-digit UTR from your payment app
       </div>
 
-      <!-- BUTTONS -->
-      <div class="psh-btns">
-        <button class="btn-cancel" onclick="closePay()">Cancel</button>
-        <button class="btn-submit" id="pay-submit" onclick="doSubmitUTR()">Submit (UTR not entered)</button>
+      <!-- IMPORTANT REMINDER -->
+      <div class="sec-row"><div class="sec-dot" style="background:#e74c3c"></div><strong>Important reminder :</strong></div>
+      <div style="font-size:12px;color:var(--muted);line-height:2.2;margin-bottom:20px">
+        1. Do not pay for the same link repeatedly!<br>
+        2. Paytm is wake up support!
+      </div>
+
+      <!-- BOTTOM BUTTONS -->
+      <div style="display:flex;gap:10px">
+        <button onclick="closePay()"
+          style="flex:1;padding:15px;background:#f5f5f5;border:1px solid #ddd;border-radius:12px;color:#555;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer">
+          Cancel
+        </button>
+        <button id="pay-submit" onclick="doSubmitUTR()"
+          style="flex:2;padding:15px;border:none;border-radius:12px;font-family:var(--font);font-size:14px;font-weight:700;cursor:not-allowed;background:#bdbdbd;color:#fff;transition:all .3s">
+          Submit (UTR not entered)
+        </button>
       </div>
 
     </div><!-- pay-main -->
 
     <!-- VERIFYING -->
-    <div class="psh-body ctr-panel" id="pay-verify" style="display:none">
-      <div style="font-size:42px;margin-bottom:14px">🔍</div>
-      <div style="font-size:17px;font-weight:800;margin-bottom:6px">Verifying Payment…</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:22px">
-        UTR: <strong style="font-family:var(--mono);color:var(--vio)" id="pay-utr-show">—</strong>
+    <div class="psh-body" id="pay-verify" style="display:none;text-align:center;padding:40px 20px">
+      <div style="font-size:48px;margin-bottom:16px">🔍</div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:8px">Verifying Payment…</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:24px">
+        UTR: <strong style="font-family:var(--mono);color:var(--vio);font-size:15px" id="pay-utr-show">—</strong>
       </div>
-      <div style="width:50px;height:50px;border:4px solid var(--bdr);border-top-color:var(--vio);border-radius:50%;margin:0 auto 18px;animation:spin 1s linear infinite"></div>
-      <div style="font-size:11px;color:var(--muted)">Please wait 10–30 seconds…<br>Do not close this screen.</div>
+      <div style="width:52px;height:52px;border:5px solid #f0f0f0;border-top-color:var(--vio);border-radius:50%;margin:0 auto 20px;animation:spin 1s linear infinite"></div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.8">Please wait 10–30 seconds…<br>Do not close this screen.</div>
     </div>
 
     <!-- SUCCESS -->
-    <div class="psh-body ctr-panel" id="pay-ok" style="display:none">
-      <div style="font-size:60px;margin-bottom:12px;animation:pop .4s cubic-bezier(.34,1.56,.64,1)">🎉</div>
-      <div style="font-size:22px;font-weight:800;color:var(--grn);margin-bottom:4px">Payment Verified!</div>
-      <div style="font-size:36px;font-weight:800;font-family:var(--mono);color:var(--grn);margin:10px 0" id="pay-ok-amt">+₹0</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Added to your balance instantly ⚡</div>
-      <div style="background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.22);border-radius:9px;padding:9px 13px;font-size:10px;color:var(--muted);margin-bottom:18px">
+    <div class="psh-body" id="pay-ok" style="display:none;text-align:center;padding:36px 20px">
+      <div style="font-size:64px;margin-bottom:14px;animation:pop .5s cubic-bezier(.34,1.56,.64,1)">🎉</div>
+      <div style="font-size:24px;font-weight:800;color:var(--grn);margin-bottom:6px">Payment Verified!</div>
+      <div style="font-size:38px;font-weight:800;font-family:var(--mono);color:var(--grn);margin:14px 0" id="pay-ok-amt">+₹0</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Added to your balance instantly ⚡</div>
+      <div style="background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.25);border-radius:10px;padding:10px 14px;font-size:11px;color:var(--muted);margin-bottom:20px">
         UTR Ref: <strong style="font-family:var(--mono);color:var(--grn)" id="pay-ok-ref">—</strong>
       </div>
-      <button onclick="closePay()" style="padding:12px 30px;background:var(--grn);border:none;border-radius:10px;color:#000;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">Done ✓</button>
+      <button onclick="closePay()" style="padding:14px 36px;background:var(--grn);border:none;border-radius:12px;color:#000;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,230,118,.4)">
+        Done ✓
+      </button>
     </div>
 
     <!-- FAILED -->
-    <div class="psh-body ctr-panel" id="pay-fail" style="display:none">
-      <div style="font-size:50px;margin-bottom:12px">❌</div>
-      <div style="font-size:19px;font-weight:800;color:var(--red);margin-bottom:6px">Verification Failed</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:18px" id="pay-fail-msg">UTR not found. Please check and try again.</div>
-      <div style="display:flex;gap:9px;justify-content:center">
-        <button onclick="payRetry()" style="padding:11px 22px;background:var(--vio);border:none;border-radius:9px;color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">Try Again</button>
-        <button onclick="closePay()" style="padding:11px 22px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:var(--muted);font-family:var(--font);font-size:12px;cursor:pointer">Cancel</button>
+    <div class="psh-body" id="pay-fail" style="display:none;text-align:center;padding:36px 20px">
+      <div style="font-size:52px;margin-bottom:14px">❌</div>
+      <div style="font-size:20px;font-weight:800;color:var(--red);margin-bottom:8px">Verification Failed</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.7" id="pay-fail-msg">UTR not found. Please check and try again.</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button onclick="payRetry()" style="padding:12px 24px;background:var(--vio);border:none;border-radius:10px;color:#fff;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">Try Again</button>
+        <button onclick="closePay()" style="padding:12px 24px;background:#f5f5f5;border:1px solid #ddd;border-radius:10px;color:#555;font-family:var(--font);font-size:13px;cursor:pointer">Cancel</button>
       </div>
     </div>
 
@@ -684,12 +718,12 @@ canvas#cc{position:fixed;inset:0;pointer-events:none;z-index:9998;display:none}
 <canvas id="cc"></canvas>
 <script>
 const SURL='https://rdvkptehpucheohkkxsm.supabase.co';
-const SKEY='sb_publishable_ZWrTByIeJBRR0HibJVoXhQ_n2QTyZ-8';
+const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkdmtwdGVocHVjaGVvaGtreHNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0Njg4MDcsImV4cCI6MjEwMzA0NDgwN30.R9YEELEzIw-hRuUFvp1JKR9n7f8psd2-3uR3z0liZUg';
 const {createClient}=supabase;
 const sb=createClient(SURL,SKEY);
 
 // ── CONSTANTS ──
-const BONUS=50, MIN_DEP=100; // ₹50 one-time signup bonus, given ONCE only
+const BONUS=50, MIN_DEP=100;
 const RS=30, RV=5;
 const MUPI='r-vallarasu@ptyes', MNAME='CHROMR WIN';
 const COLS={
@@ -1269,134 +1303,195 @@ async function loadTx(){
   el.innerHTML=data.map(tx=>`<div class="txi"><div style="display:flex;align-items:center;gap:8px"><div style="font-size:15px">${tx.type==='deposit'?'📥':tx.type==='withdraw'?'📤':'🎮'}</div><div><div class="txd">${tx.description||tx.type}</div><div class="txt2">${new Date(tx.created_at).toLocaleString('en-IN')}</div></div></div><div style="display:flex;align-items:center;gap:4px"><span class="txa ${tx.amount>0?'cr':'db'}">${tx.amount>0?'+':''}₹${Math.abs(tx.amount)}</span><span class="txs ${tx.status==='completed'?'d':tx.status==='failed'?'f':'p'}">${tx.status}</span></div></div>`).join('');
 }
 
-// ══ PAYMENT — QR SCAN + UTR ONLY ══
+// ══ PAYMENT — QR SCAN + UTR VERIFY + AUTO ADD MONEY ══
 function openPay(amt){
   if(!amt||isNaN(amt)||amt<50)return toast('⚠️ Minimum ₹50');
   if(amt>100000)return toast('Max ₹1,00,000');
   if(!G.uid)return toast('Please login first');
-  PAY.amt=amt;PAY.busy=false;PAY.utr='';
-  // reset UI
-  document.getElementById('pay-amt-hd').textContent='₹'+amt;
+  PAY.amt=amt; PAY.busy=false; PAY.utr='';
+  // Reset all UI
+  document.getElementById('pay-amt-hd').textContent='₹'+amt.toLocaleString('en-IN');
   document.getElementById('pay-qr').src='data:image/jpeg;base64,'+QR_IMG;
-  document.getElementById('pay-utr').value='';
-  document.getElementById('pay-utr').className='utr-field';
+  const inp=document.getElementById('pay-utr');
+  inp.value=''; inp.style.borderColor='#e0e0e0'; inp.style.boxShadow='none';
   document.getElementById('pay-utr-hint').textContent='Enter 12-digit UTR from your payment app';
-  document.getElementById('pay-utr-hint').className='utr-hint n';
-  document.getElementById('pay-submit').textContent='Submit (UTR not entered)';
-  document.getElementById('pay-submit').className='btn-submit';
+  document.getElementById('pay-utr-hint').style.color='var(--muted)';
+  document.getElementById('pay-utr-hint').style.background='';
+  const btn=document.getElementById('pay-submit');
+  btn.textContent='Submit (UTR not entered)';
+  btn.style.background='#bdbdbd'; btn.style.cursor='not-allowed'; btn.style.color='#fff';
+  // Reset app selection
+  document.querySelectorAll('#pab-paytm,#pab-phonepe').forEach(b=>b.style.opacity='1');
   showPayStep('main');
   startPayTimer();
   document.getElementById('povl').classList.add('on');
 }
-function showPayStep(s){
-  document.getElementById('pay-main').style.display=s==='main'?'':'none';
-  document.getElementById('pay-verify').style.display=s==='verify'?'':'none';
-  document.getElementById('pay-ok').style.display=s==='ok'?'':'none';
-  document.getElementById('pay-fail').style.display=s==='fail'?'':'none';
+
+function selPayApp(app, el){
+  // Visual feedback only — QR is same for all
+  document.querySelectorAll('#pab-paytm,#pab-phonepe').forEach(b=>{b.style.opacity='.5';b.style.transform='scale(1)';});
+  el.style.opacity='1'; el.style.transform='scale(1.03)';
+  toast('✅ '+( app==='paytm'?'Paytm':'PhonePe')+' selected — scan QR below');
 }
+
+function showPayStep(s){
+  ['pay-main','pay-verify','pay-ok','pay-fail'].forEach(id=>{
+    document.getElementById(id).style.display=id==='pay-'+s?'':'none';
+  });
+}
+
 function onUTRChange(el){
   const v=el.value.replace(/\D/g,'').slice(0,12);
   if(el.value!==v)el.value=v;
   const hint=document.getElementById('pay-utr-hint');
   const btn=document.getElementById('pay-submit');
   if(v.length===0){
-    el.className='utr-field';
+    el.style.borderColor='#e0e0e0';
     hint.textContent='Enter 12-digit UTR from your payment app';
-    hint.className='utr-hint n';
+    hint.style.color='var(--muted)'; hint.style.background='';
     btn.textContent='Submit (UTR not entered)';
-    btn.className='btn-submit';
+    btn.style.background='#bdbdbd'; btn.style.cursor='not-allowed';
   }else if(v.length<12){
-    el.className='utr-field invalid';
-    hint.textContent='Need '+(12-v.length)+' more digit'+(12-v.length>1?'s':'');
-    hint.className='utr-hint er';
+    el.style.borderColor='#ff6b6b';
+    hint.textContent='⚠️ Need '+(12-v.length)+' more digit'+(12-v.length>1?'s':'');
+    hint.style.color='var(--red)'; hint.style.background='rgba(255,51,85,.07)';
     btn.textContent='Submit (UTR not entered)';
-    btn.className='btn-submit';
+    btn.style.background='#bdbdbd'; btn.style.cursor='not-allowed';
   }else{
-    el.className='utr-field valid';
-    hint.textContent='✅ UTR looks good — tap Submit to verify';
-    hint.className='utr-hint ok';
+    el.style.borderColor='#00e676';
+    hint.textContent='✅ UTR entered — tap Submit to verify payment';
+    hint.style.color='var(--grn)'; hint.style.background='rgba(0,230,118,.08)';
     btn.textContent='Submit UTR →';
-    btn.className='btn-submit ready';
+    btn.style.background='linear-gradient(135deg,#7c4dff,#2979ff)';
+    btn.style.cursor='pointer';
   }
 }
+
 async function doPaste(){
   try{
     const t=await navigator.clipboard.readText();
     const v=t.replace(/\D/g,'').slice(0,12);
-    document.getElementById('pay-utr').value=v;
-    onUTRChange(document.getElementById('pay-utr'));
-    if(v.length===12)toast('✅ UTR pasted!');
-    else if(v.length>0)toast('⚠️ UTR should be 12 digits, got '+v.length);
-    else toast('⚠️ No digits found in clipboard');
+    const inp=document.getElementById('pay-utr');
+    inp.value=v; onUTRChange(inp);
+    if(v.length===12)toast('✅ UTR pasted successfully!');
+    else if(v.length>0)toast('⚠️ Pasted '+v.length+' digits — UTR needs 12 digits');
+    else toast('⚠️ No number found in clipboard. Copy UTR from your payment app.');
   }catch(e){
-    toast('📋 Tap the input field first, then long-press → Paste');
+    // Fallback for browsers that block clipboard
+    const inp=document.getElementById('pay-utr');
+    inp.focus(); inp.select();
+    toast('📋 Long-press on the input box and tap Paste');
   }
 }
+
 async function doSubmitUTR(){
   if(PAY.busy)return;
   const utr=document.getElementById('pay-utr').value.replace(/\D/g,'');
-  if(utr.length!==12)return toast('⚠️ Enter 12-digit UTR number');
-  PAY.busy=true;PAY.utr=utr;
+  if(utr.length!==12){
+    toast('⚠️ Please enter the 12-digit UTR number first');
+    document.getElementById('pay-utr').focus();
+    return;
+  }
+  PAY.busy=true; PAY.utr=utr;
   document.getElementById('pay-utr-show').textContent=utr;
   showPayStep('verify');
-  // Check duplicate UTR
-  const {data:dup}=await sb.from('transactions').select('id').eq('upi_ref',utr).limit(1);
-  if(dup?.length){
-    PAY.busy=false;
-    document.getElementById('pay-fail-msg').textContent='⚠️ This UTR was already used. Do not pay twice!';
-    showPayStep('fail');return;
-  }
-  // Save pending transaction
-  await sb.from('transactions').insert({
-    user_id:G.uid,type:'deposit',amount:PAY.amt,
-    description:'UPI Deposit — UTR: '+utr,
-    status:'pending',upi_ref:utr,
-    created_at:new Date().toISOString()
-  });
-  // Simulate verification (10–20s) — replace with real webhook in production
-  const delay=Math.random()*9000+8000;
-  setTimeout(async()=>{
-    try{
-      const newBal=+(G.bal+PAY.amt).toFixed(2);
-      const newDep=+(G.totalDep+PAY.amt).toFixed(2);
-      await sb.from('profiles').update({balance:newBal,total_deposited:newDep}).eq('id',G.uid);
-      await sb.from('transactions').update({status:'completed'}).eq('upi_ref',utr).eq('user_id',G.uid);
-      G.bal=newBal;G.totalDep=newDep;
-      document.getElementById('pay-ok-amt').textContent='+₹'+PAY.amt;
-      document.getElementById('pay-ok-ref').textContent=utr;
-      showPayStep('ok');
-      stopPayTimer();updBal();updWallet();loadTx();doConf();
-      toast('✅ ₹'+PAY.amt+' added to your balance!');
-    }catch(e){
+
+  try{
+    // ── Step 1: Check if UTR already used ──
+    const {data:dup}=await sb.from('transactions').select('id').eq('upi_ref',utr).limit(1);
+    if(dup?.length){
       PAY.busy=false;
-      document.getElementById('pay-fail-msg').textContent='Verification error. Contact support with UTR: '+utr;
+      document.getElementById('pay-fail-msg').textContent='⚠️ This UTR number was already submitted. Do not pay the same link twice!';
       showPayStep('fail');
+      return;
     }
-  },delay);
+
+    // ── Step 2: Save as pending transaction ──
+    await sb.from('transactions').insert({
+      user_id:G.uid,
+      type:'deposit',
+      amount:PAY.amt,
+      description:'UPI Deposit ₹'+PAY.amt+' — UTR: '+utr,
+      status:'pending',
+      upi_ref:utr,
+      created_at:new Date().toISOString()
+    });
+
+    // ── Step 3: Auto-verify after 10–20 seconds ──
+    // In production: replace this timeout with a real UPI webhook
+    const delay=Math.random()*8000+10000; // 10–18 seconds
+    setTimeout(async()=>{
+      try{
+        // Update balance
+        const newBal=parseFloat((G.bal+PAY.amt).toFixed(2));
+        const newDep=parseFloat((G.totalDep+PAY.amt).toFixed(2));
+        await sb.from('profiles').update({
+          balance:newBal,
+          total_deposited:newDep
+        }).eq('id',G.uid);
+
+        // Mark transaction completed
+        await sb.from('transactions').update({status:'completed'})
+          .eq('upi_ref',utr).eq('user_id',G.uid);
+
+        // Update local state
+        G.bal=newBal; G.totalDep=newDep;
+
+        // Show success
+        document.getElementById('pay-ok-amt').textContent='+₹'+PAY.amt.toLocaleString('en-IN');
+        document.getElementById('pay-ok-ref').textContent=utr;
+        showPayStep('ok');
+        stopPayTimer();
+        updBal(); updWallet(); loadTx(); doConf();
+        toast('✅ ₹'+PAY.amt+' added to your balance!');
+
+        // Auto close after 5 seconds
+        setTimeout(()=>{ if(document.getElementById('pay-ok').style.display!=='none') closePay(); },5000);
+
+      }catch(err){
+        PAY.busy=false;
+        document.getElementById('pay-fail-msg').textContent='Verification error. Please contact support with your UTR: '+utr;
+        showPayStep('fail');
+      }
+    },delay);
+
+  }catch(err){
+    PAY.busy=false;
+    document.getElementById('pay-fail-msg').textContent='Network error. Please check connection and try again.';
+    showPayStep('fail');
+  }
 }
+
 function payRetry(){
   PAY.busy=false;
-  document.getElementById('pay-utr').value='';
-  onUTRChange(document.getElementById('pay-utr'));
+  const inp=document.getElementById('pay-utr');
+  inp.value=''; onUTRChange(inp);
   showPayStep('main');
 }
+
 function closePay(){
-  if(PAY.busy)return;
+  if(PAY.busy)return; // Don't close while verifying
   stopPayTimer();
   document.getElementById('povl').classList.remove('on');
 }
+
 function startPayTimer(){
-  stopPayTimer();PAY.sec=899;updPayTimer();
+  stopPayTimer(); PAY.sec=899; updPayTimer();
   PAY.tint=setInterval(()=>{
-    PAY.sec--;updPayTimer();
+    PAY.sec--; updPayTimer();
     if(PAY.sec<=0){stopPayTimer();if(!PAY.busy)closePay();}
   },1000);
 }
+
 function updPayTimer(){
   const m=Math.floor(PAY.sec/60),s=PAY.sec%60;
   const el=document.getElementById('pay-timer');
-  if(el){el.textContent=m+':'+(s<10?'0':'')+s;el.style.color=PAY.sec<120?'var(--red)':PAY.sec<300?'var(--gold)':'#ff6060';}
+  if(el){
+    el.textContent=m+':'+(s<10?'0':'')+s;
+    el.style.color=PAY.sec<120?'var(--red)':PAY.sec<300?'var(--gold)':'var(--red)';
+  }
 }
+
 function stopPayTimer(){clearInterval(PAY.tint);}
 
 // ══ CONFETTI ══
